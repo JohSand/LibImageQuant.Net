@@ -16,7 +16,7 @@ new-item -Force -Name build -ItemType directory
 
 cd build
 
-cmake -A x64 -DLIB_INSTALL_DIR=$pwd ..
-cmake --build . --config Release
+cmake -A x64 -DLIB_INSTALL_DIR=$pwd -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE ..
+cmake --build . --config Release 
 Copy-Item -Force -Path "Release" -Destination "..\.." -Recurse
 cd ../..
