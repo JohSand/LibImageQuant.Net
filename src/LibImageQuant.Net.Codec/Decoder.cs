@@ -22,17 +22,17 @@ namespace LibImageQuant.Net.Codec
         public ColorType ColorType;
         public byte[] bytes = null;
 
-
-
         public void ReadPng(byte[] data)
         {
-            var reader1 = new SpanReader(data);
-            var sig = reader1.ReadSpan(8);
-
-            if (sig.SequenceEqual(Sig))
+            var reader = new MemoryReader(data);
+            if (reader.ReadMemory(8).Span.SequenceEqual(Sig))
             {
-                ReadPng(ref reader1);
+                ReadPng(ref reader);
                 Decode();
+            }
+            else
+            {
+                throw new ArgumentException("Parameter was not valid png data", nameof(data));
             }
         }
 
@@ -165,25 +165,71 @@ namespace LibImageQuant.Net.Codec
             else return c;
         }
 
-        private void ReadPng(ref SpanReader reader)
+        private void ReadPng(ref MemoryReader reader)
         {
-            using var buffer = new MemoryStream();
-            
-
-
+            using var buffer = new ChunkedStream();           
             while (reader.Remaining > 0)
             {
                 var length = reader.ReadInt32BigEndian();
-                var type = reader.ReadSpan(4);
-                var data = length > 0 ? reader.ReadSpan(length) : Span<byte>.Empty;
-                HandleData(buffer, type, data);
+                var type = reader.ReadMemory(4);
+                var data = length > 0 ? reader.ReadMemory(length) : Memory<byte>.Empty;
+                if (type.Span.SequenceEqual(IHDR))
+                {
+                    ReadHeader(data.Span);
+                }
+                else if (type.Span.SequenceEqual(IDAT))
+                {
+                    buffer.Write(data);
+                }
                 var crc = reader.ReadUInt32BigEndian();
                 var calculatedCrc = CRC.Crc32(data, CRC.Crc32(type));
-                Debug.Assert(crc == calculatedCrc, "Do I Even Care?");
+                Debug.Assert(crc == calculatedCrc, "Invalid CRC");
+            }
+
+            //buffer.Position = 0;
+            using var inflater = DeflateStreamHelpers.ZlibStream(buffer, CompressionMode.Decompress, false, 15, -1);
+            var bytesRead = inflater.Read(bytes);
+            Debug.Assert(bytesRead == bytes.Length);
+        }
+
+        private void ReadPng(Stream s)
+        {
+            using var reader = new BinaryReader(s);
+            using var buffer = Extensions.Manager.GetStream();
+            Span<byte> type = stackalloc byte[4];
+
+            while (reader.PeekChar() != -1)
+            {
+                var length = reader.ReadInt32BigEndian();                
+                reader.Read(type);
+               
+                if (length > 0)
+                {
+                    var rent = System.Buffers.ArrayPool<byte>.Shared.Rent(length);
+                    var data = new ReadOnlySpan<byte>(rent, 0, length);
+                    try
+                    {
+                        HandleData(buffer, type, data);
+                        var crc = reader.ReadUInt32BigEndian();
+                        var calculatedCrc = CRC.Crc32(data, CRC.Crc32(type));
+                        Debug.Assert(crc == calculatedCrc, "Invalid CRC");
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<byte>.Shared.Return(rent);
+                    }
+                }
+                else
+                {
+                    var crc = reader.ReadUInt32BigEndian();
+                    var calculatedCrc = CRC.Crc32(Span<byte>.Empty, CRC.Crc32(type));
+                    Debug.Assert(crc == calculatedCrc, "Invalid CRC");
+                }
+
             }
 
             buffer.Position = 0;
-            using var inflater = DeflateStreamHelpers.ZlibStream(buffer, CompressionMode.Decompress, false, 15, -1);
+            using var inflater = DeflateStreamHelpers.ZlibStream(buffer, CompressionMode.Decompress, true, 15, -1);
             var bytesRead = inflater.Read(bytes);
             Debug.Assert(bytesRead == bytes.Length);
         }
@@ -192,21 +238,7 @@ namespace LibImageQuant.Net.Codec
         {
             if (type.SequenceEqual(IHDR))
             {
-
-                width = BinaryPrimitives.ReadInt32BigEndian(data);
-                height = BinaryPrimitives.ReadInt32BigEndian(data[4..]);
-                bitDepth = data[8];
-                size = height * width;
-                ColorType = (ColorType)data[9];
-                if (ColorType == ColorType.RGBA)
-                {
-                    BitsPerPixel = 4;
-                }
-                if (ColorType == ColorType.RGB)
-                {
-                    BitsPerPixel = 3;
-                }
-                bytes = new byte[size * bitDepth * BitsPerPixel / 8 + height];
+                ReadHeader(data);
             }
             else if (type.SequenceEqual(PLTE)) { }
             else if (type.SequenceEqual(IDAT))
@@ -221,6 +253,24 @@ namespace LibImageQuant.Net.Codec
             {
                 var otherType = Encoding.ASCII.GetString(type);
             }
+        }
+
+        private void ReadHeader(ReadOnlySpan<byte> data)
+        {
+            width = BinaryPrimitives.ReadInt32BigEndian(data);
+            height = BinaryPrimitives.ReadInt32BigEndian(data[4..]);
+            bitDepth = data[8];
+            size = height * width;
+            ColorType = (ColorType)data[9];
+            if (ColorType == ColorType.RGBA)
+            {
+                BitsPerPixel = 4;
+            }
+            if (ColorType == ColorType.RGB)
+            {
+                BitsPerPixel = 3;
+            }
+            bytes = new byte[size * bitDepth * BitsPerPixel / 8 + height];
         }
     }
 }

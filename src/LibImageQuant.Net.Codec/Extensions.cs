@@ -1,13 +1,23 @@
 ﻿using LibImageQuant.Net.Core;
+using Microsoft.IO;
 using Soft160.Data.Cryptography;
 using SpanDex;
 using System;
+using System.IO;
 
 namespace LibImageQuant.Net.Codec
 {
     using static Constants;
     public static class Extensions
     {
+        internal static readonly RecyclableMemoryStreamManager Manager = new ();
+
+        public static int ReadInt32BigEndian(this BinaryReader reader) =>
+            System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(reader.ReadBytes(sizeof(int)));
+
+        public static uint ReadUInt32BigEndian(this BinaryReader reader) =>
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(reader.ReadBytes(sizeof(int)));
+
         public static int GetLastAlphaIndex(this in ReadOnlySpan<Color> palette)
         {            
             for (int i = 0; i < palette.Length; i++)
@@ -35,7 +45,7 @@ namespace LibImageQuant.Net.Codec
             writer.WriteUInt32BigEndian(crc);
         }
 
-        public static void WritePalette(this ref SpanWriter writer, ReadOnlySpan<Color> palette)
+        public static void WritePalette(this ref SpanWriter writer, in ReadOnlySpan<Color> palette)
         {
             var size = palette.Length * 3;
             writer.WriteInt32BigEndian(size);//size
@@ -52,7 +62,7 @@ namespace LibImageQuant.Net.Codec
             writer.WriteUInt32BigEndian(crc);
         }
 
-        public static void WriteData(this ref SpanWriter writer, Span<byte> deflatedData)
+        public static void WriteData(this ref SpanWriter writer, in ReadOnlySpan<byte> deflatedData)
         {
             var size = deflatedData.Length;
             writer.WriteInt32BigEndian(size);//size
@@ -72,7 +82,7 @@ namespace LibImageQuant.Net.Codec
             var crc = writer.CalculateCrc(4);
             writer.WriteUInt32BigEndian(crc);
         }
-        public static void WriteTransparency(this ref SpanWriter writer, ReadOnlySpan<Color> palette)
+        public static void WriteTransparency(this ref SpanWriter writer, in ReadOnlySpan<Color> palette)
         {
             var size = palette.Length;
             writer.WriteInt32BigEndian(size);//size
