@@ -2,6 +2,9 @@
 
 	<PropertyGroup>
 		<TargetFramework>net5.0</TargetFramework>
+		<IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows> 
+  		<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX> 
+  		<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux> 
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -12,13 +15,18 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<Content Include="$(MSBuildThisFileDirectory)/../../native/Release/imagequant.dll">
+	<ItemGroup Condition="'$(IsWindows)'=='true'">
+		<Content  Include="$(MSBuildThisFileDirectory)/../../native/Release/imagequant.dll">
 			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
+		</Content >
 	</ItemGroup>
-
+	<ItemGroup Condition="'$(IsLinux)'=='true'">
+		<Content  Include="$(MSBuildThisFileDirectory)/../../native/Release/libimagequant.so">
+			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content >
+	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Include="ErrorProne.NET.CoreAnalyzers" Version="0.4.0-beta.1">
 	    <PrivateAssets>all</PrivateAssets>
