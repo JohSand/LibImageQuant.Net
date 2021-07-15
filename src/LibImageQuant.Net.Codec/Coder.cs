@@ -27,9 +27,9 @@ namespace LibImageQuant.Net.Codec
         private void DeflateData(in ReadOnlySpan<byte> rawData, Stream deflater)
         {
             for (var i = 0; i < _height; i++)
-            {
-                var row = rawData.Slice(i * _width, _width);
+            {                
                 deflater.WriteByte(0);
+                var row = rawData.Slice(i * _width, _width);
                 deflater.Write(row);
             }
             deflater.Flush();
@@ -71,8 +71,8 @@ namespace LibImageQuant.Net.Codec
                 var writer = new SpanWriter(outArray);
                 writer.WriteSpan(Sig);
                 writer.WriteHeader(_height, _width, 8);
-                writer.WritePalette(in palette);
-                if (alphas.Length > 0)
+                writer.WritePalette(palette);
+               if (alphas.Length > 0)
                 {
                     writer.WriteTransparency(in alphas);
                 }

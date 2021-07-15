@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Buffers.Binary;
 using Soft160.Data.Cryptography;
+using LibImageQuant.Net.Core;
 
 namespace LibImageQuant.Net.Codec
 {
@@ -14,13 +15,15 @@ namespace LibImageQuant.Net.Codec
 
     public class Decoder
     {
-        public int size = 0;
-        public int width = 0;
-        public int height = 0;
-        public byte bitDepth = 0;
-        public byte BitsPerPixel = 0;
-        public ColorType ColorType;
-        public byte[] bytes = null;
+        private int size = 0;
+        private byte bitDepth = 0;
+        private byte BitsPerPixel = 0;
+        private byte[] bytes = null;
+
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+
+        public ColorType ColorType { get; private set; }
 
         public void ReadPng(byte[] data)
         {
@@ -38,16 +41,16 @@ namespace LibImageQuant.Net.Codec
 
         private void Decode()
         {
-            for (var rowIndex = 0; rowIndex < height; rowIndex++)
+            for (var rowIndex = 0; rowIndex < Height; rowIndex++)
             {
-                var rowLen = width * BitsPerPixel + 1;
+                var rowLen = Width * BitsPerPixel + 1;
                 var startIndex = rowLen * rowIndex + 1;
-                var scanLine = new Span<byte>(bytes, startIndex, width * BitsPerPixel);
+                var scanLine = new Span<byte>(bytes, startIndex, Width * BitsPerPixel);
                 var type = bytes[startIndex - 1];
                 //todo check bit depth?
                 if (type == 1)//filter sub
                 {
-                    for (int i = BitsPerPixel; i < width * BitsPerPixel; i++)
+                    for (int i = BitsPerPixel; i < Width * BitsPerPixel; i++)
                     {
                         ref var x = ref scanLine[i];
                         var prev = scanLine[i - BitsPerPixel];
@@ -58,8 +61,8 @@ namespace LibImageQuant.Net.Codec
                 else if (type == 2)//filter up
                 {
                     if (rowIndex == 0) continue;
-                    var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, width * BitsPerPixel);
-                    for (int i = 0; i < width * BitsPerPixel; i++)
+                    var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, Width * BitsPerPixel);
+                    for (int i = 0; i < Width * BitsPerPixel; i++)
                     {
                         ref var x = ref scanLine[i];
                         x = unchecked((byte)((x + priorRow[i]) % 256));
@@ -69,7 +72,7 @@ namespace LibImageQuant.Net.Codec
                 else if (type == 3)//filter avg
                 {
                     //todo, check if this was the first row?
-                    var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, width * BitsPerPixel);
+                    var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, Width * BitsPerPixel);
                     for (int i = 0; i < BitsPerPixel; i++)
                     {
                         var avg = 0 + priorRow[i] / 2;
@@ -77,7 +80,7 @@ namespace LibImageQuant.Net.Codec
                         x = unchecked((byte)((x + avg) % 256));
                     }
 
-                    for (int i = BitsPerPixel; i < width * BitsPerPixel; i++)
+                    for (int i = BitsPerPixel; i < Width * BitsPerPixel; i++)
                     {
                         var avg = (scanLine[i - BitsPerPixel] + priorRow[i]) / 2;
                         ref var x = ref scanLine[i];
@@ -100,7 +103,7 @@ namespace LibImageQuant.Net.Codec
                             x = unchecked((byte)((x + paeth) % 256));
                         }
 
-                        for (int i = BitsPerPixel; i < width * BitsPerPixel; i++)
+                        for (int i = BitsPerPixel; i < Width * BitsPerPixel; i++)
                         {
                             var a = scanLine[i - BitsPerPixel];
                             var b = 0;
@@ -114,7 +117,7 @@ namespace LibImageQuant.Net.Codec
 
                     else
                     {
-                        var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, width * BitsPerPixel);
+                        var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, Width * BitsPerPixel);
                         for (int i = 0; i < BitsPerPixel; i++)
                         {
                             var a = 0;
@@ -126,7 +129,7 @@ namespace LibImageQuant.Net.Codec
                             x = unchecked((byte)((x + paeth) % 256));
                         }
 
-                        for (int i = BitsPerPixel; i < width * BitsPerPixel; i++)
+                        for (int i = BitsPerPixel; i < Width * BitsPerPixel; i++)
                         {
                             var a = scanLine[i - BitsPerPixel];
                             var b = priorRow[i];
@@ -143,10 +146,36 @@ namespace LibImageQuant.Net.Codec
 
         public ReadOnlySpan<byte> GetScanLine(int rowIndex)
         {
-            var rowLen = (width * BitsPerPixel) + 1;
+            var rowLen = (Width * BitsPerPixel) + 1;
             var startIndex = rowLen * rowIndex + 1;
-            var scanLine = new ReadOnlySpan<byte>(bytes, startIndex, width * BitsPerPixel);
+            var scanLine = new ReadOnlySpan<byte>(bytes, startIndex, Width * BitsPerPixel);
             return scanLine;
+        }
+
+        public Color GetPixel(int row, int column)
+        {
+            if (row > Height)
+                throw new ArgumentException("Argument out of bounds", nameof(row));
+            if (column > Width)
+                throw new ArgumentException("Argument out of bounds", nameof(column));
+
+            var line = GetScanLine(row);
+
+            if(ColorType == ColorType.RGBA)
+            {
+                var a = line[(column * 4) + 3];
+                var b = line[(column * 4) + 2];
+                var g = line[(column * 4) + 1];
+                var r = line[(column * 4) + 0];
+                return new Color(a, r, g, b);
+            }
+            else
+            {
+                var b = line[(column * 3) + 2];
+                var g = line[(column * 3) + 1];
+                var r = line[(column * 3) + 0];
+                return new Color(255, r, g, b);
+            }
         }
 
         // a = left, b = above, c = upper left
@@ -257,10 +286,10 @@ namespace LibImageQuant.Net.Codec
 
         private void ReadHeader(ReadOnlySpan<byte> data)
         {
-            width = BinaryPrimitives.ReadInt32BigEndian(data);
-            height = BinaryPrimitives.ReadInt32BigEndian(data[4..]);
+            Width = BinaryPrimitives.ReadInt32BigEndian(data);
+            Height = BinaryPrimitives.ReadInt32BigEndian(data[4..]);
             bitDepth = data[8];
-            size = height * width;
+            size = Height * Width;
             ColorType = (ColorType)data[9];
             if (ColorType == ColorType.RGBA)
             {
@@ -270,7 +299,7 @@ namespace LibImageQuant.Net.Codec
             {
                 BitsPerPixel = 3;
             }
-            bytes = new byte[size * bitDepth * BitsPerPixel / 8 + height];
+            bytes = new byte[size * bitDepth * BitsPerPixel / 8 + Height];
         }
     }
 }

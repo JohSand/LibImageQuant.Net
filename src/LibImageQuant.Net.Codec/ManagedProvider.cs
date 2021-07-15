@@ -42,17 +42,17 @@ namespace LibImageQuant.Net.Codec
 
     public class ManagedProvider<T> : IProvideImages where T : struct, IFiller
     {
-        public int Width => Decoder.width;
-        public int Height => Decoder.height;
+        public int Width => Decoder.Width;
+        public int Height => Decoder.Height;
 
         private readonly T _filler;
-        public ManagedProvider(Codec.Decoder decoder, T filler)
+        public ManagedProvider(Decoder decoder)
         {
             Decoder = decoder;
-            _filler = filler;
+            _filler = default;
         }
 
-        private Codec.Decoder Decoder { get; }
+        private Decoder Decoder { get; }
 
         public void ProvideImageRow(Span<Color> rowOut, int rowIndex)
         {

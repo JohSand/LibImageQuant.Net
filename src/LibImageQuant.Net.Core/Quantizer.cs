@@ -11,7 +11,6 @@ namespace LibImageQuant.Net.Core
         {
             Attr = LibImageQuant.liq_attr_create();
             DitheringLevel = 0.6f;
-            //Liq.liq_set_last_index_transparent(Attr, 1);
         }
 
         void IDisposable.Dispose() => LibImageQuant.liq_attr_destroy(Attr);
