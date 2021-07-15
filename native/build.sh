@@ -10,3 +10,9 @@ cd libimagequant
 make libimagequant.so
 cp libimagequant.so ../Release/libimagequant.so
 cd ..
+
+
+cd zopfli
+make libzopfli
+cp libzopfli.so.1.0.3 ../Release/libzopfli.so
+cd ..

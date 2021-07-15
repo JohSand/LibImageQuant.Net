@@ -50,7 +50,7 @@ namespace Zopfli.Net
         /// <param name="data_size">This is the size of the memory block pointed to by data</param>
         /// <param name="data_out">Pointer to the dynamic output array to which the result is appended</param>
         /// <param name="data_out_size">This is the size of the memory block pointed to by the dynamic output array size</param>
-        [DllImport("zopfli.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("zopfli", CallingConvention = CallingConvention.Cdecl)]
         internal static unsafe extern void ZopfliCompress(ref ZopfliOptions options, ZopfliFormat output_type, byte* data, int data_size, ref IntPtr data_out, ref uint data_out_size);
     }
 }
