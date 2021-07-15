@@ -1,3 +1,6 @@
 [submodule "native/libimagequant"]
 	path = native/libimagequant
 	url = https://github.com/SorrowAureus/libimagequant.git
+[submodule "native/zopfli"]
+	path = native/zopfli
+	url = https://github.com/google/zopfli.git

@@ -4,13 +4,14 @@ using System;
 using System.IO;
 using System.Linq;
 using Xunit;
+using Zopfli.Net;
 
 namespace LibImageQuant.Net.Tests
 {
     public class UnitTest1
     {
 
-        private static byte[] ManagedCoder(byte[] imageBytes)
+        private static byte[] ManagedCoder(byte[] imageBytes, Func<Stream, Stream> compressorStream = null)
         {
             var Decoder = new Decoder();
             Decoder.ReadPng(imageBytes);
@@ -28,7 +29,7 @@ namespace LibImageQuant.Net.Tests
 
             using var quantizer = new Quantizer { DitheringLevel = 0.6f, Quality = (0, 100) };
             using var result = quantizer.Quantize(ipi, Decoder.width, Decoder.height);
-            return new Coder(Decoder.width, Decoder.height).CreateBytes(result);
+            return new Coder(Decoder.width, Decoder.height, compressorStream).CreateBytes(result);
         }
 
         [Fact]
@@ -55,6 +56,16 @@ namespace LibImageQuant.Net.Tests
             var ms = new MemoryStream();
             chunked.CopyTo(ms);
             var outarr = ms.ToArray();
+        }
+
+        [Fact]
+        public void Test3()
+        {
+            var fileName = @"frau-mode-vintage-illustration-1622417428ANN.png";
+            var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
+            var result = ManagedCoder(bytes, s => new ZopfliStream(s, true, bytes.Length));
+            Assert.True(bytes.Length > result.Length);
+            File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "out2.png"), result);
         }
     }
 }
