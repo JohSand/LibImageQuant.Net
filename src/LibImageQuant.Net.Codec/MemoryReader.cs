@@ -26,6 +26,7 @@ namespace LibImageQuant.Net.Codec
         public static implicit operator MemoryReader(byte[] array) => new MemoryReader(array);
         public static implicit operator MemoryReader(ArraySegment<byte> segment) => new MemoryReader(segment);
 
+
         /// <summary>
         /// The current cursor position
         /// </summary>
@@ -78,6 +79,8 @@ namespace LibImageQuant.Net.Codec
         public ulong ReadUInt64LittleEndian() => _memory.ReadUInt64LittleEndian(ref cursor);
 
         public ReadOnlyMemory<byte> ReadMemory(int size) => _memory.ReadMemory(size, ref cursor);
+
+        public ReadOnlySpan<byte> ReadSpan(int size) => _memory.ReadMemory(size, ref cursor).Span;
 
         public string ReadAsciiString(int size) => _memory.ReadAsciiString(size, ref cursor);
 
