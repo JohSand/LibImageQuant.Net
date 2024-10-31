@@ -20,7 +20,6 @@ namespace LibImageQuant.Net.Codec
             _height = height;
             CreateCompressorStream =
                 compressorStream ?? (buffer => new ZLibStream(buffer, CompressionMode.Compress, leaveOpen: true));
-                //(buffer => DeflateStreamHelpers.ZlibStream(buffer, CompressionMode.Compress, true, 15, -1));
         }
 
 
