@@ -20,7 +20,7 @@ namespace LibImageQuant.Net.Tests
             bufferStream.Compress(bytes);
 
             bufferStream.Position = 0;
-            using var inflater = Codec.DeflateStreamHelpers.ZlibStream(bufferStream, CompressionMode.Decompress, false, 15, -1);
+            using var inflater = new ZLibStream(bufferStream, CompressionMode.Decompress, false);
             var dst = new byte[bytes.Length];
             inflater.Read(dst);
             Assert.Equal(bytes, dst);

@@ -216,7 +216,7 @@ namespace LibImageQuant.Net.Codec
             }
 
             //buffer.Position = 0;
-            using var inflater = DeflateStreamHelpers.ZlibStream(buffer, CompressionMode.Decompress, false, 15, -1);
+            using var inflater = new ZLibStream(buffer, CompressionMode.Decompress, false);
             var bytesRead = inflater.Read(bytes);
             Debug.Assert(bytesRead == bytes.Length);
         }
@@ -258,7 +258,7 @@ namespace LibImageQuant.Net.Codec
             }
 
             buffer.Position = 0;
-            using var inflater = DeflateStreamHelpers.ZlibStream(buffer, CompressionMode.Decompress, true, 15, -1);
+            using var inflater = new ZLibStream(buffer, CompressionMode.Decompress, true);
             var bytesRead = inflater.Read(bytes);
             Debug.Assert(bytesRead == bytes.Length);
         }

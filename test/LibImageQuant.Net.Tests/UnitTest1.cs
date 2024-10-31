@@ -18,7 +18,7 @@ namespace LibImageQuant.Net.Tests
             _ => throw new ArgumentException("Colortype does not support quantization"),
         };
 
-        private static byte[] ManagedCoder(byte[] imageBytes, Func<Stream, Stream> compressorStream = null)
+        private static byte[] Compress(byte[] imageBytes, Func<Stream, Stream> compressorStream = null)
         {
             var dec = new Decoder();
             dec.ReadPng(imageBytes);
@@ -34,7 +34,7 @@ namespace LibImageQuant.Net.Tests
         {
             var fileName = @"frau-mode-vintage-illustration-1622417428ANN.png";
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
-            var result = ManagedCoder(bytes);
+            var result = Compress(bytes);
             Assert.True(bytes.Length > result.Length * 2);
             File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "out.png"), result);
         }
@@ -61,7 +61,7 @@ namespace LibImageQuant.Net.Tests
             var fileName = @"panda.png";
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
 
-            var result = ManagedCoder(bytes, s => new ZopfliStream(s, true, bytes.Length));
+            var result = Compress(bytes, s => new ZopfliStream(s, true, bytes.Length));
             Assert.True(bytes.Length > result.Length * 3);
             File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "panda_out_zopfli.png"), result);
         }
@@ -71,7 +71,7 @@ namespace LibImageQuant.Net.Tests
         {
             var fileName = @"panda.png";
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
-            var result = ManagedCoder(bytes);
+            var result = Compress(bytes);
             Assert.True(bytes.Length > result.Length);
             File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "panda_out.png"), result);
         }
