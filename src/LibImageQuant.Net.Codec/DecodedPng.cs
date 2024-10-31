@@ -245,7 +245,8 @@ namespace LibImageQuant.Net.Codec
             return pngData;
         }
 
-        private static int ReadToEnd(Stream s, Span<byte> buffer) {
+        private static int ReadToEnd(Stream s, Span<byte> buffer)
+        {
             var read = 0;
             var totalBytes = 0;
             do

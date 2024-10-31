@@ -30,7 +30,7 @@ namespace LibImageQuant.Net.Codec
 
         public override void Flush()
         {
-       
+
         }
 
         public override int Read(Span<byte> buffer)

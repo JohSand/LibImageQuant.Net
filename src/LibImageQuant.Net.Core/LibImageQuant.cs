@@ -53,8 +53,8 @@ namespace LibImageQuant.Net.Core
         [LibraryImport(@"imagequant")]
         internal static partial void liq_set_last_index_transparent(liq_attr_ptr attr, int is_last);
 
-        [DllImport(@"imagequant")]
-        internal static extern unsafe liq_image_ptr liq_image_create_rgba(liq_attr_ptr attr, byte* bitmap, int width, int height, double gamma);
+        [LibraryImport(@"imagequant")]
+        unsafe internal static partial liq_image_ptr liq_image_create_rgba(liq_attr_ptr attr, byte* bitmap, int width, int height, double gamma);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void rgb_to_rgba_callback(
@@ -63,8 +63,8 @@ namespace LibImageQuant.Net.Core
             int width,
             liq_image_ptr user_info);
 
-        [DllImport(@"imagequant")]
-        internal static extern unsafe liq_image_ptr liq_image_create_custom(
+        [LibraryImport(@"imagequant")]
+        unsafe internal static partial liq_image_ptr liq_image_create_custom(
             liq_attr_ptr attr,
             delegate* unmanaged<liq_image_ptr, int, int, liq_image_ptr, void> row_callback,
             liq_image_ptr user_info,

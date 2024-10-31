@@ -49,7 +49,7 @@ namespace LibImageQuant.Net.Core
                 unchecked((byte)((c1.Blue + c2.Blue) % 256))
             );
 
-        public static Color operator -(in Color c1, in Color c2) => new 
+        public static Color operator -(in Color c1, in Color c2) => new
             (
                 unchecked((byte)((c1.Alpha - c2.Alpha) % 256)),
                 unchecked((byte)((c1.Red - c2.Red) % 256)),

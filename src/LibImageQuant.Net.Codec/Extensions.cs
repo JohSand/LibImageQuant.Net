@@ -10,7 +10,7 @@ namespace LibImageQuant.Net.Codec
     using static Constants;
     public static class Extensions
     {
-        internal static readonly RecyclableMemoryStreamManager Manager = new ();
+        internal static readonly RecyclableMemoryStreamManager Manager = new();
 
         public static int ReadInt32BigEndian(this BinaryReader reader) =>
             System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(reader.ReadBytes(sizeof(int)));
@@ -19,7 +19,7 @@ namespace LibImageQuant.Net.Codec
             System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(reader.ReadBytes(sizeof(int)));
 
         public static int GetLastAlphaIndex(this in ReadOnlySpan<Color> palette)
-        {            
+        {
             for (int i = 0; i < palette.Length; i++)
             {
                 if (palette[i].Alpha == 255)
