@@ -46,13 +46,13 @@ namespace LibImageQuant.Net.Codec
         public int Height => Decoder.Height;
 
         private readonly T _filler;
-        public ManagedProvider(Decoder decoder)
+        public ManagedProvider(DecodedPng decoder)
         {
             Decoder = decoder;
             _filler = default;
         }
 
-        private Decoder Decoder { get; }
+        private DecodedPng Decoder { get; }
 
         public void ProvideImageRow(Span<Color> rowOut, int rowIndex)
         {

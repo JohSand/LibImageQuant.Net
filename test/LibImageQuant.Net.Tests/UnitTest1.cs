@@ -11,17 +11,16 @@ namespace LibImageQuant.Net.Tests
     public class UnitTest1
     {
 
-        private static IProvideImages GetProvider(Decoder dec) => dec.ColorType switch
+        private static IProvideImages GetProvider(DecodedPng dec) => dec.ColorType switch
         {
             ColorType.RGBA => new ManagedProvider<ARGBFiller>(dec),
             ColorType.RGB => new ManagedProvider<RGBFiller>(dec),
             _ => throw new ArgumentException("Colortype does not support quantization"),
         };
 
-        private static byte[] ManagedCoder(byte[] imageBytes, Func<Stream, Stream> compressorStream = null)
+        private static byte[] Compress(byte[] imageBytes, Func<Stream, Stream> compressorStream = null)
         {
-            var dec = new Decoder();
-            dec.ReadPng(imageBytes);
+            var dec = Decoder.ReadPng(imageBytes);
             using var quantizer = new Quantizer { DitheringLevel = 0.6f, Quality = (0, 80) };
             using var result = quantizer.Quantize(GetProvider(dec), dec.Width, dec.Height);
             return new Coder(dec.Width, dec.Height, compressorStream).CreateBytes(result);
@@ -34,7 +33,7 @@ namespace LibImageQuant.Net.Tests
         {
             var fileName = @"frau-mode-vintage-illustration-1622417428ANN.png";
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
-            var result = ManagedCoder(bytes);
+            var result = Compress(bytes);
             Assert.True(bytes.Length > result.Length * 2);
             File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "out.png"), result);
         }
@@ -61,7 +60,7 @@ namespace LibImageQuant.Net.Tests
             var fileName = @"panda.png";
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
 
-            var result = ManagedCoder(bytes, s => new ZopfliStream(s, true, bytes.Length));
+            var result = Compress(bytes, s => new ZopfliStream(s, true, bytes.Length));
             Assert.True(bytes.Length > result.Length * 3);
             File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "panda_out_zopfli.png"), result);
         }
@@ -71,7 +70,7 @@ namespace LibImageQuant.Net.Tests
         {
             var fileName = @"panda.png";
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
-            var result = ManagedCoder(bytes);
+            var result = Compress(bytes);
             Assert.True(bytes.Length > result.Length);
             File.WriteAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "panda_out.png"), result);
         }
@@ -79,8 +78,7 @@ namespace LibImageQuant.Net.Tests
         [Fact]
         public void TestQuality()
         {
-            var dec = new Decoder();
-            dec.ReadPng(File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), @"panda.png")));
+            var dec = Decoder.ReadPng(File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), @"panda.png")));
             using var quantizer = new Quantizer { DitheringLevel = 0.6f, Quality = (70, 100) };
             using var result = quantizer.Quantize(GetProvider(dec), dec.Width, dec.Height);
             double nrmse = GetError(dec, result);
@@ -91,15 +89,14 @@ namespace LibImageQuant.Net.Tests
         [Fact]
         public void TestQualityNoAlpha()
         {
-            var dec = new Decoder();
-            dec.ReadPng(File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), @"image06.png")));
+            var dec = Decoder.ReadPng(File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), @"image06.png")));
             using var quantizer = new Quantizer { DitheringLevel = 0.0f, Quality = (0, 100) };
             using var result = quantizer.Quantize(GetProvider(dec), dec.Width, dec.Height);
             double nrmse = GetError(dec, result);
             Assert.Equal(0, nrmse, 3);
         }
 
-        private static double GetError(Decoder dec, QuantizationResult result)
+        private static double GetError(DecodedPng dec, QuantizationResult result)
         {
             double sse = 0;
             for (var row = 0; row < dec.Height; row++)
