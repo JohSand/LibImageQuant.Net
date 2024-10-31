@@ -106,7 +106,7 @@ namespace LibImageQuant.Net.Core
             var handle = GCHandle.Alloc(ipi);
             try
             {
-                return Quantize(width, height, handle);
+                return Quantize(handle, width, height);
             }
             finally
             {
@@ -114,7 +114,7 @@ namespace LibImageQuant.Net.Core
             }
         }
 
-        private unsafe QuantizationResult Quantize(int width, int height, GCHandle handle)
+        private unsafe QuantizationResult Quantize(GCHandle handle, int width, int height)
         {
             [UnmanagedCallersOnly]
             static unsafe void Callback(IntPtr rowPtr, int rowIndex, int width, IntPtr info)

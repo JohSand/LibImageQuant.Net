@@ -17,9 +17,9 @@ namespace LibImageQuant.Net.Codec
             for (var i = 0; i < rowOut.Length; i++)
             {
                 var a = scanLine[(i * 4) + 3];
-                var b = scanLine[(i * 4) + 2];
+                var r = scanLine[(i * 4) + 2];
                 var g = scanLine[(i * 4) + 1];
-                var r = scanLine[(i * 4) + 0];
+                var b = scanLine[(i * 4) + 0];
                 rowOut[i] = new Color(a, r, g, b);
             }
         }
@@ -32,9 +32,9 @@ namespace LibImageQuant.Net.Codec
         {
             for (var i = 0; i < rowOut.Length; i++)
             {
-                var b = scanLine[(i * 3) + 2];
+                var r = scanLine[(i * 3) + 2];
                 var g = scanLine[(i * 3) + 1];
-                var r = scanLine[(i * 3) + 0];
+                var b = scanLine[(i * 3) + 0];
                 rowOut[i] = new Color(255, r, g, b);
             }
         }

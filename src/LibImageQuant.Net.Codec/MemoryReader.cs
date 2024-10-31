@@ -78,9 +78,9 @@ namespace LibImageQuant.Net.Codec
 
         public ulong ReadUInt64LittleEndian() => _memory.ReadUInt64LittleEndian(ref cursor);
 
-        public ReadOnlyMemory<byte> ReadMemory(int size) => _memory.ReadMemory(size, ref cursor);
+        public ReadOnlyMemory<byte> ReadMemory(int size) => size > 0 ? _memory.ReadMemory(size, ref cursor) : ReadOnlyMemory<byte>.Empty;
 
-        public ReadOnlySpan<byte> ReadSpan(int size) => _memory.ReadMemory(size, ref cursor).Span;
+        public ReadOnlySpan<byte> ReadSpan(int size) => size > 0 ? _memory.ReadMemory(size, ref cursor).Span : [];
 
         public string ReadAsciiString(int size) => _memory.ReadAsciiString(size, ref cursor);
 

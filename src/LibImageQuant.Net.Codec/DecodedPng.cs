@@ -12,8 +12,6 @@ using LibImageQuant.Net.Core;
 namespace LibImageQuant.Net.Codec
 {
     using static Constants;
-    using static System.Runtime.InteropServices.JavaScript.JSType;
-
     public class DecodedPng(DecoderData data, byte[] bytes)
     {
         public int Width => data.Width;
@@ -21,12 +19,13 @@ namespace LibImageQuant.Net.Codec
 
         public ColorType ColorType => data.ColorType;
 
+        public byte[] Bytes => bytes;
 
         public ReadOnlySpan<byte> GetScanLine(int rowIndex)
         {
-            var rowLen = (Width * data.BitsPerPixel) + 1;
-            var startIndex = rowLen * rowIndex + 1;
-            var scanLine = new ReadOnlySpan<byte>(bytes, startIndex, Width * data.BitsPerPixel);
+            var rowLen = (Width * data.BitsPerPixel);
+            var startIndex = rowLen * rowIndex;
+            var scanLine = new ReadOnlySpan<byte>(Bytes, startIndex, rowLen);
             return scanLine;
         }
 
@@ -42,16 +41,16 @@ namespace LibImageQuant.Net.Codec
             if (ColorType == ColorType.RGBA)
             {
                 var a = line[(column * 4) + 3];
-                var b = line[(column * 4) + 2];
+                var r = line[(column * 4) + 2];
                 var g = line[(column * 4) + 1];
-                var r = line[(column * 4) + 0];
+                var b = line[(column * 4) + 0];
                 return new Color(a, r, g, b);
             }
             else
             {
-                var b = line[(column * 3) + 2];
+                var r = line[(column * 3) + 2];
                 var g = line[(column * 3) + 1];
-                var r = line[(column * 3) + 0];
+                var b = line[(column * 3) + 0];
                 return new Color(255, r, g, b);
             }
         }
@@ -65,11 +64,9 @@ namespace LibImageQuant.Net.Codec
 
         public ColorType ColorType { get; init; }
 
-        public byte BitsPerPixel => ColorType switch { ColorType.RGBA => 4, ColorType.RGB => 3, _ => 1 };
+        public byte BitsPerPixel { get; init; }
 
-        public int Size => Height * Width;
-
-        public int BufferSize => Size * BitDepth * BitsPerPixel / 8 + Height;
+        public int BufferSize => Height * Width * BitDepth / 8 * BitsPerPixel + Height; //extra byte per row?
     }
 
     public static class Decoder
@@ -94,9 +91,9 @@ namespace LibImageQuant.Net.Codec
             for (var rowIndex = 0; rowIndex < pngData.Height; rowIndex++)
             {
                 var rowLen = pngData.Width * pngData.BitsPerPixel + 1;
-                var startIndex = rowLen * rowIndex + 1;
-                var scanLine = new Span<byte>(bytes, startIndex, pngData.Width * pngData.BitsPerPixel);
-                var type = bytes[startIndex - 1];
+                var startIndex = rowLen * rowIndex;
+                var type = bytes[startIndex];
+                var scanLine = new Span<byte>(bytes, startIndex + 1, pngData.Width * pngData.BitsPerPixel);
                 //todo check bit depth?
                 if (type == 1)//filter sub
                 {
@@ -194,10 +191,59 @@ namespace LibImageQuant.Net.Codec
             }
         }
 
+        private static void AlignData(in DecoderData pngData, byte[] bytes)
+        {
+            if (pngData.BitsPerPixel == 4)
+            {
+                for (var rowIndex = 0; rowIndex < pngData.Height; rowIndex++)
+                {
+                    //shift row.
+                    var rowLen = pngData.Width * pngData.BitsPerPixel;
+                    var startIndex = rowLen * rowIndex;
+                    //src is offset 1 for each row
+                    var src = new Span<byte>(bytes, startIndex + rowIndex + 1, rowLen);
+                    var dst = new Span<byte>(bytes, startIndex, rowLen);
+                    for (var j = 0; j < rowLen; j += 4)
+                    {
+                        var tmp0 = src[j + 0];
+                        var tmp1 = src[j + 1];
+                        var tmp2 = src[j + 2];
+                        var tmp3 = src[j + 3];
+
+
+                        dst[j + 0] = tmp2;
+                        dst[j + 1] = tmp1;
+                        dst[j + 2] = tmp0;
+                        dst[j + 3] = tmp3;
+                    }
+                }
+            }
+            else if (pngData.BitsPerPixel == 3)
+            {
+                for (var rowIndex = 0; rowIndex < pngData.Height; rowIndex++)
+                {
+                    //shift row.
+                    var rowLen = pngData.Width * pngData.BitsPerPixel;
+                    var src = new Span<byte>(bytes, (rowLen + 1) * rowIndex + 1, rowLen);
+                    var dst = new Span<byte>(bytes, rowLen * rowIndex, rowLen);
+                    for (var j = 0; j < rowLen; j += 3)
+                    {
+                        var tmp0 = src[j + 0];
+                        var tmp1 = src[j + 1];
+                        var tmp2 = src[j + 2];
+
+                        dst[j + 0] = tmp2;
+                        dst[j + 1] = tmp1;
+                        dst[j + 2] = tmp0;
+                    }
+                }
+            }
+        }
+
+
         private static DecoderData ReadPngData(ref MemoryReader reader, ChunkedStream buffer)
         {
             DecoderData pngData = default;
-
             while (reader.Remaining > 0)
             {
                 var length = reader.ReadInt32BigEndian();
@@ -205,7 +251,7 @@ namespace LibImageQuant.Net.Codec
 
                 if (type.SequenceEqual(IHDR))
                 {
-                    var chunk = length > 0 ? reader.ReadSpan(length) : [];
+                    var chunk = reader.ReadSpan(length);
                     var width = BinaryPrimitives.ReadInt32BigEndian(chunk);
                     var height = BinaryPrimitives.ReadInt32BigEndian(chunk[4..]);
                     var bitDepth = chunk[8];
@@ -214,17 +260,19 @@ namespace LibImageQuant.Net.Codec
                     {
                         Width = width,
                         Height = height,
-                        ColorType = colorType,
-                        BitDepth = bitDepth
+                        ColorType = colorType, //if RGBA, allowed depth 8, 16
+                        BitDepth = bitDepth,
+                        BitsPerPixel = colorType switch { ColorType.RGBA => 4, ColorType.RGB => 3, _ => 1 }
                     };
 
                     var crc = reader.ReadUInt32BigEndian();
                     var calculatedCrc = CRC.Crc32(chunk, CRC.Crc32(type));
                     Debug.Assert(crc == calculatedCrc, "Invalid CRC");
+
                 }
                 else if (type.SequenceEqual(IDAT))
                 {
-                    var chunk = length > 0 ? reader.ReadMemory(length) : ReadOnlyMemory<byte>.Empty;
+                    var chunk = reader.ReadMemory(length);
                     buffer.Write(chunk);
                     var crc = reader.ReadUInt32BigEndian();
                     var calculatedCrc = CRC.Crc32(chunk, CRC.Crc32(type));
@@ -232,7 +280,7 @@ namespace LibImageQuant.Net.Codec
                 }
                 else
                 {
-                    var data = length > 0 ? reader.ReadSpan(length) : [];
+                    var data = reader.ReadSpan(length);
 #if (DEBUG)
                     var name = Encoding.UTF8.GetString(type.ToArray());
 #endif
@@ -245,7 +293,7 @@ namespace LibImageQuant.Net.Codec
             return pngData;
         }
 
-        private static int ReadToEnd(Stream s, Span<byte> buffer)
+        private static int ReadToEnd(this Stream s, Span<byte> buffer)
         {
             var read = 0;
             var totalBytes = 0;
@@ -272,12 +320,12 @@ namespace LibImageQuant.Net.Codec
 
                 using var inflater = new ZLibStream(buffer, CompressionMode.Decompress, false);
 
-                var bytesRead = ReadToEnd(inflater, bytes);
+                var bytesRead = inflater.ReadToEnd(bytes);
 
                 Debug.Assert(bytesRead == bytes.Length);
 
                 ApplyPngFilters(in pngData, bytes);
-
+                AlignData(in pngData, bytes);
                 return new DecodedPng(pngData, bytes);
             }
             else
