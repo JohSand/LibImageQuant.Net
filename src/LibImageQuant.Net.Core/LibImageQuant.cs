@@ -56,13 +56,6 @@ namespace LibImageQuant.Net.Core
         [LibraryImport(@"imagequant")]
         unsafe internal static partial liq_image_ptr liq_image_create_rgba(liq_attr_ptr attr, byte* bitmap, int width, int height, double gamma);
 
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate void rgb_to_rgba_callback(
-            [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] Color[] row_out,
-            int row_index,
-            int width,
-            liq_image_ptr user_info);
-
         [LibraryImport(@"imagequant")]
         unsafe internal static partial liq_image_ptr liq_image_create_custom(
             liq_attr_ptr attr,
@@ -71,7 +64,6 @@ namespace LibImageQuant.Net.Core
             int width,
             int height,
             double gamma);
-        //public static partial liq_image_ptr liq_image_create_custom(liq_attr_ptr attr, rgb_to_rgba_callback row_callback, IntPtr user_info, int width, int height, double gamma);
 
         [LibraryImport(@"imagequant")]
         internal static partial LiqError liq_image_set_memory_ownership(liq_image_ptr image, int ownership_flags);
