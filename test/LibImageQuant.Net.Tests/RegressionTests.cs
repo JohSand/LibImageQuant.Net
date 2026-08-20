@@ -75,6 +75,34 @@ namespace LibImageQuant.Net.Tests
         }
 
         [Fact]
+        public void Quantize_FromRawRgbaBytes_PreservesRedAndBlueChannels()
+        {
+            // Color's explicit FieldOffset layout used to put Red and Blue at the offsets a
+            // conventional 0xAARRGGBB int packing wants, rather than matching libimagequant's
+            // native liq_color { r, g, b, a } - which this struct is blitted directly onto,
+            // with no field-by-field marshaling, at both P/Invoke crossings (the row callback
+            // and the palette result). Quantizer.Quantize(IProvideImages, ...) crosses that
+            // boundary twice (write pixels in, read palette out), so the mismatch canceled
+            // itself out there - but Quantize(ReadOnlySpan<byte>, ...) only crosses it once
+            // (read side only), so it came back with Red and Blue genuinely swapped: pure red
+            // in, pure blue out of PaletteData.
+            var pixels = new byte[2 * 2 * 4];
+            for (var i = 0; i < 4; i++)
+            {
+                pixels[(i * 4) + 0] = 255; // R
+                pixels[(i * 4) + 1] = 0;   // G
+                pixels[(i * 4) + 2] = 0;   // B
+                pixels[(i * 4) + 3] = 255; // A
+            }
+
+            using var quantizer = new Quantizer { MaxColors = 4, DitheringLevel = 0f };
+            using var result = quantizer.Quantize((ReadOnlySpan<byte>)pixels, 2, 2);
+
+            Assert.All(result.PaletteData.ToArray(), c =>
+                Assert.Equal(new Color(255, 255, 0, 0), c));
+        }
+
+        [Fact]
         public void GetPixel_ThrowsArgumentException_AtRowAndColumnBoundary()
         {
             // GetPixel's bounds checks used `>` instead of `>=`, so row == Height (or
