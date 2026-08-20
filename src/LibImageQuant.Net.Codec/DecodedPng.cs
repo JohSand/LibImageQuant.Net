@@ -95,21 +95,6 @@ namespace LibImageQuant.Net.Codec
 
     public static class Decoder
     {
-        private static int PaethPredictor(int a, int b, int c)
-        {
-            //var p = a + b - c;
-            var pa = Math.Abs(b - c);
-            var pb = Math.Abs(a - c);
-            var pc = Math.Abs(a + b - c - c);
-            // return nearest of a, b, c,
-            // breaking ties in order a, b, c.
-            if (pa <= pb && pa <= pc)
-                return a;
-            else if (pb <= pc)
-                return b;
-            else return c;
-        }
-
         private static void ApplyPngFilters(in DecoderData pngData, byte[] bytes)
         {
             for (var rowIndex = 0; rowIndex < pngData.Height; rowIndex++)
@@ -184,7 +169,7 @@ namespace LibImageQuant.Net.Codec
                             var a = 0;
                             var b = 0;
                             var c = 0;
-                            var paeth = PaethPredictor(a, b, c);
+                            var paeth = PngFilter.PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
                             x = unchecked((byte)(x + paeth));
@@ -195,7 +180,7 @@ namespace LibImageQuant.Net.Codec
                             var a = scanLine[i - pngData.BitsPerPixel];
                             var b = 0;
                             var c = 0;
-                            var paeth = PaethPredictor(a, b, c);
+                            var paeth = PngFilter.PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
                             x = unchecked((byte)(x + paeth));
@@ -210,7 +195,7 @@ namespace LibImageQuant.Net.Codec
                             var a = 0;
                             var b = priorRow[i];
                             var c = 0;
-                            var paeth = PaethPredictor(a, b, c);
+                            var paeth = PngFilter.PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
                             x = unchecked((byte)(x + paeth));
@@ -221,7 +206,7 @@ namespace LibImageQuant.Net.Codec
                             var a = scanLine[i - pngData.BitsPerPixel];
                             var b = priorRow[i];
                             var c = priorRow[i - pngData.BitsPerPixel];
-                            var paeth = PaethPredictor(a, b, c);
+                            var paeth = PngFilter.PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
                             x = unchecked((byte)(x + paeth));
