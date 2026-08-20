@@ -1,35 +1,33 @@
 using LibImageQuant.Net.Codec;
 using LibImageQuant.Net.Core;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 using VerifyXunit;
-using Xunit;
 using Decoder = LibImageQuant.Net.Codec.Decoder;
 
 namespace LibImageQuant.Net.Tests
 {
     /// <summary>
-    /// Snapshot tests for the actual quantized+encoded PNG bytes, via Verify
-    /// (https://github.com/VerifyTests/Verify). Unlike the pixel-tolerance/exact-match
-    /// assertions elsewhere in this suite, these store the real output PNG next to the test
-    /// (Snapshots/*.verified.png) so a person can just open and look at it, and fail loudly -
-    /// with a *.received.png sitting alongside it for a side-by-side look - the moment the
-    /// pipeline's actual output changes for any reason (an algorithm change upstream, a
-    /// setting change here, a regression), not just when a numeric invariant breaks.
+    /// Snapshot tests for the actual quantized+encoded PNG, via Verify
+    /// (https://github.com/VerifyTests/Verify) and Verify.ImageSharp. Unlike the
+    /// pixel-tolerance/exact-match assertions elsewhere in this suite, these store the real
+    /// output PNG next to the test (Snapshots/*.verified.png) so a person can just open and
+    /// look at it, and fail loudly - with a *.received.png sitting alongside it for a
+    /// side-by-side look - the moment the pipeline's actual output changes for any reason (an
+    /// algorithm change upstream, a setting change here, a regression), not just when a
+    /// numeric invariant breaks.
+    ///
+    /// Comparison is via SSIM (see ModuleInit.cs), decoding our own PLTE output through a
+    /// completely independent decoder (ImageSharp) as a side effect. SSIM tolerance is what
+    /// lets this run on every CI leg rather than being restricted to one fixed platform/core
+    /// count - see ModuleInit.cs for why exact comparison couldn't.
     ///
     /// To accept a changed snapshot after confirming it's correct: delete the matching
     /// .verified.png and rename the .received.png to .verified.png (or use a Verify-aware
     /// IDE plugin / diff tool - see https://github.com/VerifyTests/Verify#snapshot-management).
-    ///
-    /// Quantization here is fully deterministic on a given machine (confirmed: 10 repeated
-    /// runs of the same input produced byte-identical output), but libimagequant v4 uses
-    /// multi-threading, whose work-stealing order can in principle affect floating-point
-    /// accumulation order differently across CPU core counts or architectures - so these are
-    /// intentionally not run on the Windows CI leg, only linux-x64, to avoid a spurious
-    /// cross-platform byte-diff. If this ever turns out to be flaky even on a single fixed
-    /// runner, switch to a pixel-tolerance comparison instead of the exact byte match Verify
-    /// does by default.
     /// </summary>
     public class VisualTests
     {
@@ -41,7 +39,6 @@ namespace LibImageQuant.Net.Tests
         };
 
         [Theory]
-        [Trait("Category", "Visual")]
         [InlineData("panda.png", 32)]
         [InlineData("image06.png", 16)]
         [InlineData("frau-mode-vintage-illustration-1622417428ANN.png", 64)]
@@ -53,7 +50,8 @@ namespace LibImageQuant.Net.Tests
             using var result = quantizer.Quantize(GetProvider(dec), dec.Width, dec.Height);
             var encoded = new Coder(dec.Width, dec.Height).CreateBytes(result);
 
-            return Verifier.Verify(encoded, extension: "png")
+            using var image = Image.Load<Rgba32>(encoded);
+            return Verifier.Verify(image)
                 .UseDirectory("Snapshots")
                 .UseParameters(fileName, maxColors);
         }

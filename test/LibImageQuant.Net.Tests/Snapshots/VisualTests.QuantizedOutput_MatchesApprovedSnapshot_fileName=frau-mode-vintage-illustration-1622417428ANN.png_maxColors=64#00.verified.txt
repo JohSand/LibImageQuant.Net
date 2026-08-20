@@ -1,0 +1,7 @@
+﻿{
+  Width: 1920,
+  Height: 1920,
+  HorizontalResolution: 96.0,
+  VerticalResolution: 96.0,
+  ResolutionUnits: PixelsPerInch
+}

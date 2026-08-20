@@ -52,15 +52,5 @@ jobs:
       - name: dotnet build
         run: dotnet build LibImageQuant.Net.sln
 
-      # The Visual-category snapshot tests do an exact byte comparison against a checked-in
-      # PNG; libimagequant's multi-threaded quantization is deterministic on a given machine,
-      # but its work-stealing order isn't guaranteed to produce byte-identical floating-point
-      # accumulation across different OSes/CPU core counts. Only run them on linux-x64 to
-      # avoid a spurious cross-platform diff.
       - name: dotnet test
-        if: runner.os == 'Linux'
         run: dotnet test LibImageQuant.Net.sln
-
-      - name: dotnet test (excluding visual snapshot tests)
-        if: runner.os == 'Windows'
-        run: dotnet test LibImageQuant.Net.sln --filter "Category!=Visual"
