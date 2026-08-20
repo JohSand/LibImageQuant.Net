@@ -74,11 +74,9 @@ namespace LibImageQuant.Net.Codec
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            //should not be used, but if, might as well use correctly...
             var cp = new byte[count];
             Array.Copy(buffer, offset, cp, 0, count);
-            var mem = new ReadOnlyMemory<byte>(cp, offset, count);
-            Write(mem);
+            Write(new ReadOnlyMemory<byte>(cp));
         }
 
         public override long Seek(long offset, SeekOrigin origin)
