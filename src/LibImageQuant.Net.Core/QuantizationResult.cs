@@ -44,7 +44,7 @@ namespace LibImageQuant.Net.Core
 
         public ReadOnlySpan<byte> ImageData => new(_imageData, 0, _byteCount);
 
-        public ReadOnlySpan<Color> PaletteData => new(_palette.Entries);
+        public ReadOnlySpan<Color> PaletteData => new(_palette.Entries, 0, _palette.Count);
 
         public void Dispose()
         {

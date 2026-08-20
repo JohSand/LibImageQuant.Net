@@ -32,9 +32,9 @@ namespace LibImageQuant.Net.Codec
 
         public Color GetPixel(int row, int column)
         {
-            if (row > Height)
+            if (row >= Height)
                 throw new ArgumentException("Argument out of bounds", nameof(row));
-            if (column > Width)
+            if (column >= Width)
                 throw new ArgumentException("Argument out of bounds", nameof(column));
 
             var line = GetScanLine(row);
@@ -121,20 +121,33 @@ namespace LibImageQuant.Net.Codec
 
                 else if (type == 3)//filter avg
                 {
-                    //todo, check if this was the first row?
-                    var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, pngData.Width * pngData.BitsPerPixel);
-                    for (int i = 0; i < pngData.BitsPerPixel; i++)
+                    if (rowIndex == 0)
                     {
-                        var avg = 0 + priorRow[i] / 2;
-                        ref var x = ref scanLine[i];
-                        x = unchecked((byte)((x + avg) % 256));
+                        // Prior(x) is 0 for the first row. For i < bpp, Raw(x-bpp) is also 0,
+                        // so avg is 0 and those bytes are already correct as-is.
+                        for (int i = pngData.BitsPerPixel; i < pngData.Width * pngData.BitsPerPixel; i++)
+                        {
+                            var avg = scanLine[i - pngData.BitsPerPixel] / 2;
+                            ref var x = ref scanLine[i];
+                            x = unchecked((byte)((x + avg) % 256));
+                        }
                     }
-
-                    for (int i = pngData.BitsPerPixel; i < pngData.Width * pngData.BitsPerPixel; i++)
+                    else
                     {
-                        var avg = (scanLine[i - pngData.BitsPerPixel] + priorRow[i]) / 2;
-                        ref var x = ref scanLine[i];
-                        x = unchecked((byte)((x + avg) % 256));
+                        var priorRow = new Span<byte>(bytes, rowLen * (rowIndex - 1) + 1, pngData.Width * pngData.BitsPerPixel);
+                        for (int i = 0; i < pngData.BitsPerPixel; i++)
+                        {
+                            var avg = priorRow[i] / 2;
+                            ref var x = ref scanLine[i];
+                            x = unchecked((byte)((x + avg) % 256));
+                        }
+
+                        for (int i = pngData.BitsPerPixel; i < pngData.Width * pngData.BitsPerPixel; i++)
+                        {
+                            var avg = (scanLine[i - pngData.BitsPerPixel] + priorRow[i]) / 2;
+                            ref var x = ref scanLine[i];
+                            x = unchecked((byte)((x + avg) % 256));
+                        }
                     }
                 }
 
