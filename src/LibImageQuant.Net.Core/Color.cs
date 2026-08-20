@@ -4,18 +4,27 @@ using System.Runtime.InteropServices;
 
 namespace LibImageQuant.Net.Core
 {
+    // Field offsets deliberately match libimagequant's native liq_color { r, g, b, a } exactly
+    // (see libimagequant.h) - Quantizer's row callback and QuantizationResult's palette
+    // marshaling both blit this struct directly across the P/Invoke boundary with no
+    // field-by-field conversion, so any mismatch here silently swaps channels on one (or, if
+    // both sides happened to mismatch identically, neither) side of that boundary. That's
+    // exactly what happened before this layout matched native: Red and Blue were swapped
+    // relative to liq_color, which canceled out for the IProvideImages path (crosses the
+    // boundary twice - write pixels in, read palette out) but genuinely corrupted the palette
+    // for Quantizer.Quantize(ReadOnlySpan<byte>, ...), which only crosses it once.
     [DebuggerDisplay("{Alpha}, {Red}, {Green}, {Blue}")]
     [StructLayout(LayoutKind.Explicit)]
     public readonly struct Color : IEquatable<Color>
     {
-        [FieldOffset(3)]
-        public readonly byte Alpha;
-        [FieldOffset(2)]
+        [FieldOffset(0)]
         public readonly byte Red;
         [FieldOffset(1)]
         public readonly byte Green;
-        [FieldOffset(0)]
+        [FieldOffset(2)]
         public readonly byte Blue;
+        [FieldOffset(3)]
+        public readonly byte Alpha;
 
         [FieldOffset(0)]
         public readonly int Argb;
@@ -24,9 +33,9 @@ namespace LibImageQuant.Net.Core
         {
             Argb = argb;
             Debug.Assert(Alpha == (uint)argb >> 24);
-            Debug.Assert(Red == ((uint)(argb >> 16) & 255));
+            Debug.Assert(Blue == ((uint)(argb >> 16) & 255));
             Debug.Assert(Green == ((uint)(argb >> 8) & 255));
-            Debug.Assert(Blue == ((uint)argb & 255));
+            Debug.Assert(Red == ((uint)argb & 255));
         }
 
         public Color(byte a, byte r, byte g, byte b) : this()

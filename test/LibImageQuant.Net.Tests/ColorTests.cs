@@ -9,7 +9,10 @@ namespace LibImageQuant.Net.Tests
         public void Constructor_FromArgbInt_MatchesComponentConstructor()
         {
             var fromComponents = new Color(255, 10, 20, 30);
-            var argb = unchecked((int)0xFF0A141Eu); // A=FF, R=0A(10), G=14(20), B=1E(30)
+            // Byte layout matches native liq_color { r, g, b, a } (see Color.cs), so as a
+            // little-endian int this reads high-to-low as A,B,G,R rather than the more common
+            // A,R,G,B packing.
+            var argb = unchecked((int)0xFF1E140Au); // A=FF, B=1E(30), G=14(20), R=0A(10)
             var fromArgb = new Color(argb);
 
             Assert.Equal(fromComponents, fromArgb);
