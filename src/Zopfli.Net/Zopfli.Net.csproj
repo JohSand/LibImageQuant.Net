@@ -39,5 +39,21 @@
 			<Link>libzopfli.so</Link>
 			<CopyToOutputDirectory Condition="'$(IsLinux)'=='true'">Always</CopyToOutputDirectory>
 		</None>
+		<!-- zopflibridge: see native/zopfli_free_shim.c - lets Zopfli.cs free ZopfliCompress's
+		     output buffer through zopfli's own allocator instead of Marshal.FreeHGlobal. -->
+		<None Include="$(MSBuildThisFileDirectory)/../../native/runtimes/win-x64/native/zopflibridge.dll"
+			  Condition="Exists('$(MSBuildThisFileDirectory)/../../native/runtimes/win-x64/native/zopflibridge.dll')">
+			<Pack>true</Pack>
+			<PackagePath>runtimes/win-x64/native/zopflibridge.dll</PackagePath>
+			<Link>zopflibridge.dll</Link>
+			<CopyToOutputDirectory Condition="'$(IsWindows)'=='true'">Always</CopyToOutputDirectory>
+		</None>
+		<None Include="$(MSBuildThisFileDirectory)/../../native/runtimes/linux-x64/native/libzopflibridge.so"
+			  Condition="Exists('$(MSBuildThisFileDirectory)/../../native/runtimes/linux-x64/native/libzopflibridge.so')">
+			<Pack>true</Pack>
+			<PackagePath>runtimes/linux-x64/native/libzopflibridge.so</PackagePath>
+			<Link>libzopflibridge.so</Link>
+			<CopyToOutputDirectory Condition="'$(IsLinux)'=='true'">Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>

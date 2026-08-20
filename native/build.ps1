@@ -32,15 +32,20 @@ Copy-Item -Force -Path "Release\imagequant.dll" -Destination $OutDir
 cd ../..
 
 
-# zopfli
+# zopfli + zopflibridge
+#
+# Built together from native/CMakeLists.txt (an umbrella project that
+# add_subdirectory()s zopfli and adds a zopflibridge target alongside it)
+# rather than from zopfli's own CMakeLists.txt directly, so both targets get
+# the same default CRT/runtime-library settings in one cmake invocation. See
+# zopfli_free_shim.c for why zopflibridge needs to match zopfli's allocator.
 
-cd zopfli
+new-item -Force -Name build-zopfli -ItemType directory
 
-new-item -Force -Name build -ItemType directory
-
-cd build
+cd build-zopfli
 
 cmake -A x64 -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE ..
 cmake --build . --config Release
 Copy-Item -Force -Path "Release\zopfli.dll" -Destination $OutDir
-cd ../..
+Copy-Item -Force -Path "Release\zopflibridge.dll" -Destination $OutDir
+cd ..
