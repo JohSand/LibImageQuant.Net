@@ -35,8 +35,11 @@ namespace Zopfli.Net
                 }
                 finally
                 {
-                    // Free unmanaged memory
-                    Marshal.FreeHGlobal(result);
+                    // ZopfliCompress allocates this buffer with its own malloc/realloc, not
+                    // with whatever backs Marshal.AllocHGlobal (LocalAlloc on Windows - a
+                    // different heap). Free it through the matching allocator instead; see
+                    // native/zopfli_free_shim.c.
+                    ZopfliNetFree(result);
                 }
             }
         }
@@ -52,5 +55,12 @@ namespace Zopfli.Net
         /// <param name="data_out_size">This is the size of the memory block pointed to by the dynamic output array size</param>
         [LibraryImport("zopfli")]
         unsafe internal static partial void ZopfliCompress(ref ZopfliOptions options, ZopfliFormat output_type, byte* data, int data_size, ref IntPtr data_out, ref uint data_out_size);
+
+        /// <summary>
+        /// Frees a buffer allocated by <see cref="ZopfliCompress"/>, via zopfli's own allocator
+        /// (see native/zopfli_free_shim.c) rather than Marshal.FreeHGlobal.
+        /// </summary>
+        [LibraryImport("zopflibridge")]
+        internal static partial void ZopfliNetFree(IntPtr ptr);
     }
 }

@@ -21,3 +21,8 @@ cd "$SCRIPT_DIR/zopfli"
 make libzopfli
 cp libzopfli.so.1.0.3 "$OUT_DIR/libzopfli.so"
 cd "$SCRIPT_DIR"
+
+# See zopfli_free_shim.c: lets managed code free ZopfliCompress's output
+# buffer through zopfli's own allocator. On Linux this is unambiguous either
+# way (one process-wide glibc heap), so a plain standalone build is fine.
+gcc -shared -fPIC -O3 -o "$OUT_DIR/libzopflibridge.so" "$SCRIPT_DIR/zopfli_free_shim.c"
