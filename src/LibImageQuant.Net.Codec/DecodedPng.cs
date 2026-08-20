@@ -12,9 +12,8 @@ using LibImageQuant.Net.Core;
 namespace LibImageQuant.Net.Codec
 {
     using static Constants;
-    using static System.Runtime.InteropServices.JavaScript.JSType;
 
-    public class DecodedPng(DecoderData data, byte[] bytes)
+    public class DecodedPng(DecoderData data, byte[] bytes, Color[] palette)
     {
         public int Width => data.Width;
         public int Height => data.Height;
@@ -46,6 +45,10 @@ namespace LibImageQuant.Net.Codec
                 var g = line[(column * 4) + 1];
                 var r = line[(column * 4) + 0];
                 return new Color(a, r, g, b);
+            }
+            else if (ColorType == ColorType.PLTE)
+            {
+                return palette[line[column]];
             }
             else
             {
@@ -207,9 +210,11 @@ namespace LibImageQuant.Net.Codec
             }
         }
 
-        private static DecoderData ReadPngData(ref MemoryReader reader, ChunkedStream buffer)
+        private static DecoderData ReadPngData(ref MemoryReader reader, ChunkedStream buffer, out byte[] paletteRgb, out byte[] paletteAlpha)
         {
             DecoderData pngData = default;
+            paletteRgb = [];
+            paletteAlpha = [];
 
             while (reader.Remaining > 0)
             {
@@ -243,6 +248,22 @@ namespace LibImageQuant.Net.Codec
                     var calculatedCrc = CRC.Crc32(chunk, CRC.Crc32(type));
                     Debug.Assert(crc == calculatedCrc, "Invalid CRC");
                 }
+                else if (type.SequenceEqual(PLTE))
+                {
+                    var chunk = length > 0 ? reader.ReadSpan(length) : [];
+                    paletteRgb = chunk.ToArray();
+                    var crc = reader.ReadUInt32BigEndian();
+                    var calculatedCrc = CRC.Crc32(chunk, CRC.Crc32(type));
+                    Debug.Assert(crc == calculatedCrc, "Invalid CRC");
+                }
+                else if (type.SequenceEqual(tRNS))
+                {
+                    var chunk = length > 0 ? reader.ReadSpan(length) : [];
+                    paletteAlpha = chunk.ToArray();
+                    var crc = reader.ReadUInt32BigEndian();
+                    var calculatedCrc = CRC.Crc32(chunk, CRC.Crc32(type));
+                    Debug.Assert(crc == calculatedCrc, "Invalid CRC");
+                }
                 else
                 {
                     var data = length > 0 ? reader.ReadSpan(length) : [];
@@ -256,6 +277,26 @@ namespace LibImageQuant.Net.Codec
 
             }
             return pngData;
+        }
+
+        /// <summary>
+        /// Combines a PLTE chunk's RGB triples with an optional tRNS chunk's alpha values into
+        /// a lookup palette for indexed-color (PLTE) pixels. Per the PNG spec, tRNS may contain
+        /// fewer entries than PLTE; entries without a corresponding tRNS value are fully opaque.
+        /// </summary>
+        private static Color[] BuildPalette(byte[] paletteRgb, byte[] paletteAlpha)
+        {
+            var count = paletteRgb.Length / 3;
+            var palette = new Color[count];
+            for (var i = 0; i < count; i++)
+            {
+                var r = paletteRgb[(i * 3) + 0];
+                var g = paletteRgb[(i * 3) + 1];
+                var b = paletteRgb[(i * 3) + 2];
+                var a = i < paletteAlpha.Length ? paletteAlpha[i] : (byte)255;
+                palette[i] = new Color(a, r, g, b);
+            }
+            return palette;
         }
 
         private static int ReadToEnd(Stream s, Span<byte> buffer)
@@ -279,7 +320,7 @@ namespace LibImageQuant.Net.Codec
             if (reader.ReadSpan(8).SequenceEqual(Sig))
             {
                 using var buffer = new ChunkedStream();
-                var pngData = ReadPngData(ref reader, buffer);
+                var pngData = ReadPngData(ref reader, buffer, out var paletteRgb, out var paletteAlpha);
 
                 var bytes = new byte[pngData.BufferSize];
 
@@ -291,7 +332,7 @@ namespace LibImageQuant.Net.Codec
 
                 ApplyPngFilters(in pngData, bytes);
 
-                return new DecodedPng(pngData, bytes);
+                return new DecodedPng(pngData, bytes, BuildPalette(paletteRgb, paletteAlpha));
             }
             else
             {
