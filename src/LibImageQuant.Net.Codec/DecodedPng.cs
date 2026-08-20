@@ -107,8 +107,11 @@ namespace LibImageQuant.Net.Codec
                     {
                         ref var x = ref scanLine[i];
                         var prev = scanLine[i - pngData.BitsPerPixel];
-                        var sub = x + prev;
-                        x = unchecked((byte)(sub % 256));
+                        // Casting to byte already truncates to the low 8 bits, which is
+                        // identical to % 256 here since x + prev is always non-negative
+                        // (both operands are byte-derived, 0-255) - so the modulo (a div
+                        // instruction) is pure overhead in this hot per-byte loop.
+                        x = unchecked((byte)(x + prev));
                     }
                 }
                 else if (type == 2)//filter up
@@ -118,7 +121,7 @@ namespace LibImageQuant.Net.Codec
                     for (int i = 0; i < pngData.Width * pngData.BitsPerPixel; i++)
                     {
                         ref var x = ref scanLine[i];
-                        x = unchecked((byte)((x + priorRow[i]) % 256));
+                        x = unchecked((byte)(x + priorRow[i]));
                     }
                 }
 
@@ -132,7 +135,7 @@ namespace LibImageQuant.Net.Codec
                         {
                             var avg = scanLine[i - pngData.BitsPerPixel] / 2;
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + avg) % 256));
+                            x = unchecked((byte)(x + avg));
                         }
                     }
                     else
@@ -142,14 +145,14 @@ namespace LibImageQuant.Net.Codec
                         {
                             var avg = priorRow[i] / 2;
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + avg) % 256));
+                            x = unchecked((byte)(x + avg));
                         }
 
                         for (int i = pngData.BitsPerPixel; i < pngData.Width * pngData.BitsPerPixel; i++)
                         {
                             var avg = (scanLine[i - pngData.BitsPerPixel] + priorRow[i]) / 2;
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + avg) % 256));
+                            x = unchecked((byte)(x + avg));
                         }
                     }
                 }
@@ -166,7 +169,7 @@ namespace LibImageQuant.Net.Codec
                             var paeth = PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + paeth) % 256));
+                            x = unchecked((byte)(x + paeth));
                         }
 
                         for (int i = pngData.BitsPerPixel; i < pngData.Width * pngData.BitsPerPixel; i++)
@@ -177,7 +180,7 @@ namespace LibImageQuant.Net.Codec
                             var paeth = PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + paeth) % 256));
+                            x = unchecked((byte)(x + paeth));
                         }
                     }
 
@@ -192,7 +195,7 @@ namespace LibImageQuant.Net.Codec
                             var paeth = PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + paeth) % 256));
+                            x = unchecked((byte)(x + paeth));
                         }
 
                         for (int i = pngData.BitsPerPixel; i < pngData.Width * pngData.BitsPerPixel; i++)
@@ -203,7 +206,7 @@ namespace LibImageQuant.Net.Codec
                             var paeth = PaethPredictor(a, b, c);
 
                             ref var x = ref scanLine[i];
-                            x = unchecked((byte)((x + paeth) % 256));
+                            x = unchecked((byte)(x + paeth));
                         }
                     }
                 }
