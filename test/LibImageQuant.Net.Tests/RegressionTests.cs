@@ -1,11 +1,7 @@
 using LibImageQuant.Net.Codec;
 using LibImageQuant.Net.Core;
 using System;
-using System.Buffers.Binary;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Text;
 using Xunit;
 using Decoder = LibImageQuant.Net.Codec.Decoder;
 
@@ -31,7 +27,7 @@ namespace LibImageQuant.Net.Tests
             // width=2, height=1, 8-bit RGB. Raw (unfiltered) pixels are (10,20,30) and
             // (50,60,70); encoded with filter type 3 by hand below.
             var rawScanline = new byte[] { 3, 10, 20, 30, 45, 50, 55 };
-            var png = BuildMinimalRgbPng(width: 2, height: 1, rawScanline);
+            var png = PngTestHelpers.BuildMinimalPng(width: 2, height: 1, ColorType.RGB, rawScanline);
 
             var dec = Decoder.ReadPng(png);
 
@@ -92,68 +88,6 @@ namespace LibImageQuant.Net.Tests
 
             Assert.Throws<ArgumentException>(() => { dec.GetPixel(dec.Height, 0); });
             Assert.Throws<ArgumentException>(() => { dec.GetPixel(0, dec.Width); });
-        }
-
-        private static byte[] BuildMinimalRgbPng(int width, int height, byte[] rawScanlines)
-        {
-            var ihdrData = new byte[13];
-            BinaryPrimitives.WriteInt32BigEndian(ihdrData, width);
-            BinaryPrimitives.WriteInt32BigEndian(ihdrData.AsSpan(4), height);
-            ihdrData[8] = 8; // bit depth
-            ihdrData[9] = (byte)ColorType.RGB;
-            ihdrData[10] = 0; // compression method
-            ihdrData[11] = 0; // filter method
-            ihdrData[12] = 0; // interlace method
-
-            using var compressed = new MemoryStream();
-            using (var zlib = new ZLibStream(compressed, CompressionMode.Compress, leaveOpen: true))
-            {
-                zlib.Write(rawScanlines);
-            }
-
-            byte[] sig = { 137, 80, 78, 71, 13, 10, 26, 10 };
-            return sig
-                .Concat(Chunk("IHDR", ihdrData))
-                .Concat(Chunk("IDAT", compressed.ToArray()))
-                .Concat(Chunk("IEND", Array.Empty<byte>()))
-                .ToArray();
-        }
-
-        private static byte[] Chunk(string type, byte[] data)
-        {
-            var result = new byte[4 + 4 + data.Length + 4];
-            BinaryPrimitives.WriteInt32BigEndian(result, data.Length);
-            Encoding.ASCII.GetBytes(type).CopyTo(result.AsSpan(4));
-            data.CopyTo(result.AsSpan(8));
-            var crc = Crc32(result.AsSpan(4, 4 + data.Length));
-            BinaryPrimitives.WriteUInt32BigEndian(result.AsSpan(8 + data.Length), crc);
-            return result;
-        }
-
-        // Standard PNG/zlib CRC-32 (polynomial 0xEDB88320), per the PNG spec's own
-        // reference implementation (Appendix D) - kept self-contained here rather than
-        // depending on which CRC package the Codec project happens to use internally.
-        private static readonly uint[] Crc32Table = BuildCrc32Table();
-
-        private static uint[] BuildCrc32Table()
-        {
-            var table = new uint[256];
-            for (uint n = 0; n < 256; n++)
-            {
-                var c = n;
-                for (var k = 0; k < 8; k++)
-                    c = (c & 1) != 0 ? 0xEDB88320 ^ (c >> 1) : c >> 1;
-                table[n] = c;
-            }
-            return table;
-        }
-
-        private static uint Crc32(ReadOnlySpan<byte> data)
-        {
-            var c = 0xFFFFFFFFu;
-            foreach (var b in data)
-                c = Crc32Table[(c ^ b) & 0xFF] ^ (c >> 8);
-            return c ^ 0xFFFFFFFFu;
         }
     }
 }
