@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
+		<Description>A managed wrapper around Google's zopfli compression library for smaller DEFLATE/zlib output.</Description>
 		<IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
 		<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
 		<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
@@ -15,17 +16,28 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(IsWindows)'=='true'">
-		<Content  Include="$(MSBuildThisFileDirectory)/../../native/Release/zopfli.dll">
-			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content >
-	</ItemGroup>
-
-		<ItemGroup Condition="'$(IsLinux)'=='true'">
-		<Content  Include="$(MSBuildThisFileDirectory)/../../native/Release/libzopfli.so">
-			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content >
+	<!--
+	  Native assets are staged by native/build.ps1 (win-x64) and native/build.sh (linux-x64)
+	  under native/runtimes/<rid>/native/. Each one is packed to the matching runtimes/<rid>/native
+	  path inside the nupkg (the standard NuGet native-asset layout, resolved automatically at
+	  restore/run time based on the consumer's RID) and, for local dev/test on this machine,
+	  copied to the output directory so the currently-running platform's build/tests keep working.
+	  A missing RID (e.g. no Windows build has been run here) is simply skipped, not an error.
+	-->
+	<ItemGroup>
+		<None Include="$(MSBuildThisFileDirectory)/../../native/runtimes/win-x64/native/zopfli.dll"
+			  Condition="Exists('$(MSBuildThisFileDirectory)/../../native/runtimes/win-x64/native/zopfli.dll')">
+			<Pack>true</Pack>
+			<PackagePath>runtimes/win-x64/native/zopfli.dll</PackagePath>
+			<Link>zopfli.dll</Link>
+			<CopyToOutputDirectory Condition="'$(IsWindows)'=='true'">Always</CopyToOutputDirectory>
+		</None>
+		<None Include="$(MSBuildThisFileDirectory)/../../native/runtimes/linux-x64/native/libzopfli.so"
+			  Condition="Exists('$(MSBuildThisFileDirectory)/../../native/runtimes/linux-x64/native/libzopfli.so')">
+			<Pack>true</Pack>
+			<PackagePath>runtimes/linux-x64/native/libzopfli.so</PackagePath>
+			<Link>libzopfli.so</Link>
+			<CopyToOutputDirectory Condition="'$(IsLinux)'=='true'">Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>

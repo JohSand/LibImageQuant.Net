@@ -1,0 +1,23 @@
+<Project>
+
+	<!-- Shared NuGet package metadata for every packable project in the repo. -->
+	<PropertyGroup>
+		<Authors>JohSand</Authors>
+		<PackageProjectUrl>https://github.com/JohSand/LibImageQuant.Net</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/JohSand/LibImageQuant.Net.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+		<PackageTags>png;image-quantization;imagequant;zopfli;compression;codec</PackageTags>
+
+		<!--
+		  Placeholder pre-release version for a project that has never been published.
+		  Pick a real versioning scheme (and bump this, or wire it to CI/tags) before the first
+		  actual `dotnet pack` / publish.
+		-->
+		<Version>0.1.0</Version>
+
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+
+</Project>
