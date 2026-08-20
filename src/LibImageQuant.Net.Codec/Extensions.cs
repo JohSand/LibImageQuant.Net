@@ -18,14 +18,14 @@ namespace LibImageQuant.Net.Codec
         public static uint ReadUInt32BigEndian(this BinaryReader reader) =>
             System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(reader.ReadBytes(sizeof(int)));
 
-        public static int GetLastAlphaIndex(this in ReadOnlySpan<Color> palette)
+        public static bool HasTransparency(this in ReadOnlySpan<Color> palette)
         {
             for (int i = 0; i < palette.Length; i++)
             {
-                if (palette[i].Alpha == 255)
-                    return i;
+                if (palette[i].Alpha != 255)
+                    return true;
             }
-            return palette.Length;
+            return false;
         }
 
         public static void WriteHeader(this ref SpanWriter writer, int height, int width, byte bpp)
