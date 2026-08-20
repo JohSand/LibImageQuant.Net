@@ -1,6 +1,8 @@
 [submodule "native/libimagequant"]
 	path = native/libimagequant
 	url = https://github.com/ImageOptim/libimagequant.git
+	ignore = untracked
 [submodule "native/zopfli"]
 	path = native/zopfli
 	url = https://github.com/google/zopfli.git
+	ignore = untracked
