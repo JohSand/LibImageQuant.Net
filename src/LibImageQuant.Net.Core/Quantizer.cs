@@ -1,10 +1,13 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace LibImageQuant.Net.Core
 {
     public sealed class Quantizer : IDisposable
     {
+        private bool _disposed;
+        private float _ditheringLevel;
+
         internal IntPtr Attr { get; }
 
         public Quantizer()
@@ -13,23 +16,35 @@ namespace LibImageQuant.Net.Core
             DitheringLevel = 0.6f;
         }
 
-        void IDisposable.Dispose() => LibImageQuant.liq_attr_destroy(Attr);
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+            LibImageQuant.liq_attr_destroy(Attr);
+        }
+
+        private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
         /// <summary>
-        /// Enables/disables dithering. Dithering level must be between 0 and 1 (inclusive). Dithering level 0 enables fast non-dithered remapping. 
+        /// Enables/disables dithering. Dithering level must be between 0 and 1 (inclusive). Dithering level 0 enables fast non-dithered remapping.
         /// Otherwise a variation of Floyd-Steinberg error diffusion is used.
         /// Precision of the dithering algorithm depends on the speed setting, see <see cref="Speed"/>.
         /// </summary>
-        public float DitheringLevel { get; set; }
+        public float DitheringLevel
+        {
+            get { ThrowIfDisposed(); return _ditheringLevel; }
+            set { ThrowIfDisposed(); _ditheringLevel = value; }
+        }
 
         public (int min, int max) Quality
         {
-            get => (LibImageQuant.liq_get_min_quality(Attr), LibImageQuant.liq_get_max_quality(Attr));
-            set => LibImageQuant.liq_set_quality(Attr, value.min, value.max);
+            get { ThrowIfDisposed(); return (LibImageQuant.liq_get_min_quality(Attr), LibImageQuant.liq_get_max_quality(Attr)); }
+            set { ThrowIfDisposed(); LibImageQuant.liq_set_quality(Attr, value.min, value.max); }
         }
 
         /// <summary>
-        /// Features dependent on speed 
+        /// Features dependent on speed
         ///     Noise-sensitive dithering	        1 to 5
         ///     Forced posterization	            8-10 or if image has more than million colors
         ///     Quantization error known	        1-7 or if minimum quality is set
@@ -37,18 +52,18 @@ namespace LibImageQuant.Net.Core
         /// </summary>
         public int Speed
         {
-            get => LibImageQuant.liq_get_speed(Attr);
-            set => LibImageQuant.liq_set_speed(Attr, value);
+            get { ThrowIfDisposed(); return LibImageQuant.liq_get_speed(Attr); }
+            set { ThrowIfDisposed(); LibImageQuant.liq_set_speed(Attr, value); }
         }
 
         /// <summary>
-        /// Ignores given number of least significant bits in all channels, posterizing image to 2^bits levels. 0 gives full quality. 
+        /// Ignores given number of least significant bits in all channels, posterizing image to 2^bits levels. 0 gives full quality.
         /// Use 2 for VGA or 16-bit RGB565 displays, 4 if image is going to be output on a RGB444/RGBA4444 display (e.g. low-quality textures on Android).
         /// </summary>
         public int MinPosterization
         {
-            get => LibImageQuant.liq_get_min_posterization(Attr);
-            set => LibImageQuant.liq_set_min_posterization(Attr, value);
+            get { ThrowIfDisposed(); return LibImageQuant.liq_get_min_posterization(Attr); }
+            set { ThrowIfDisposed(); LibImageQuant.liq_set_min_posterization(Attr, value); }
         }
 
         /// <summary>
@@ -56,15 +71,15 @@ namespace LibImageQuant.Net.Core
         /// </summary>
         public int MaxColors
         {
-            get => LibImageQuant.liq_get_max_colors(Attr);
-            set => LibImageQuant.liq_set_max_colors(Attr, value);
+            get { ThrowIfDisposed(); return LibImageQuant.liq_get_max_colors(Attr); }
+            set { ThrowIfDisposed(); LibImageQuant.liq_set_max_colors(Attr, value); }
         }
 
         [Obsolete("This was a workaround for Internet Explorer 6, but because this browser is not used any more, this option has been deprecated and removed.")]
         public int MinOpacity
         {
-            get => LibImageQuant.liq_get_min_opacity(Attr);
-            set => LibImageQuant.liq_set_min_opacity(Attr, value);
+            get { ThrowIfDisposed(); return LibImageQuant.liq_get_min_opacity(Attr); }
+            set { ThrowIfDisposed(); LibImageQuant.liq_set_min_opacity(Attr, value); }
         }
 
         /// <summary>
@@ -76,6 +91,7 @@ namespace LibImageQuant.Net.Core
         /// <returns>QuantizationResult</returns>
         public unsafe QuantizationResult Quantize(ReadOnlySpan<byte> imageBytes, int width, int height)
         {
+            ThrowIfDisposed();
             fixed (byte* p = imageBytes)
             {
                 return Quantize(p, width, height);
@@ -91,6 +107,7 @@ namespace LibImageQuant.Net.Core
         /// <returns>QuantizationResult</returns>
         public unsafe QuantizationResult Quantize(IntPtr imageBytes, int width, int height)
         {
+            ThrowIfDisposed();
             return Quantize((byte*)imageBytes.ToPointer(), width, height);
         }
 
@@ -103,6 +120,7 @@ namespace LibImageQuant.Net.Core
         /// <returns></returns>
         public QuantizationResult Quantize(IProvideImages ipi, int width, int height)
         {
+            ThrowIfDisposed();
             var handle = GCHandle.Alloc(ipi);
             try
             {
