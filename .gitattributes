@@ -1,0 +1,6 @@
+# Verify snapshot files must round-trip byte-for-byte: Verify itself writes
+# them with \n line endings and rejects \r on comparison (see
+# VerifiedLineEndingException). Without this, Windows checkouts get \r\n
+# via core.autocrlf and every snapshot test fails on that platform alone.
+*.verified.txt text eol=lf working-tree-encoding=UTF-8
+*.verified.png binary
