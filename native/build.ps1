@@ -45,11 +45,15 @@ cd ../..
 # the same default CRT/runtime-library settings in one cmake invocation. See
 # zopfli_free_shim.c for why zopflibridge needs to match zopfli's allocator.
 
-new-item -Force -Name build-zopfli -ItemType directory
+new-item -Force -Name build-zopfli -ItemType directory | Out-Null
 
 cd build-zopfli
 
-cmake -A x64 -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE ..
+# zopfli/CMakeLists.txt (Google's, not ours) declares cmake_minimum_required(VERSION 2.8.11);
+# modern CMake dropped support for configuring anything below 3.5 outright, refusing to even
+# parse it otherwise. CMAKE_POLICY_VERSION_MINIMUM is the documented escape hatch for old
+# projects like this one that still work fine, they just haven't updated that line in years.
+cmake -A x64 -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE ..
 cmake --build . --config Release
 Copy-Item -Force -Path "Release\zopfli.dll" -Destination $OutDir
 Copy-Item -Force -Path "Release\zopflibridge.dll" -Destination $OutDir
