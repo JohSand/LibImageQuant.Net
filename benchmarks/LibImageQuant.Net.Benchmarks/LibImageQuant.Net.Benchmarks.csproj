@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LibImageQuant.Net.Codec\LibImageQuant.Net.Codec.csproj" />
+    <ProjectReference Include="..\..\src\LibImageQuant.Net.Core\LibImageQuant.Net.Core.csproj" />
+    <ProjectReference Include="..\..\src\Zopfli.Net\Zopfli.Net.csproj" />
+  </ItemGroup>
+
+  <!-- Reuse the test project's fixture images rather than duplicating the binaries. -->
+  <ItemGroup>
+    <None Include="..\..\test\LibImageQuant.Net.Tests\panda.png" Link="panda.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\test\LibImageQuant.Net.Tests\image06.png" Link="image06.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\test\LibImageQuant.Net.Tests\frau-mode-vintage-illustration-1622417428ANN.png" Link="frau-mode-vintage-illustration-1622417428ANN.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
