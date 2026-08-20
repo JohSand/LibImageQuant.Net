@@ -1,5 +1,6 @@
 ﻿using SpanDex;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -13,8 +14,15 @@ namespace LibImageQuant.Net.Codec
 {
     using static Constants;
 
-    public class DecodedPng(DecoderData data, byte[] bytes, Color[] palette)
+    /// <summary>
+    /// Owns a pixel buffer rented from ArrayPool&lt;byte&gt;.Shared (Decoder.ReadPng always
+    /// allocates one of these per decode, and decoded images can be large) - Dispose it, or
+    /// wrap it in a using, once you're done reading pixels from it.
+    /// </summary>
+    public class DecodedPng(DecoderData data, byte[] bytes, Color[] palette) : IDisposable
     {
+        private bool _disposed;
+
         public int Width => data.Width;
         public int Height => data.Height;
 
@@ -23,6 +31,8 @@ namespace LibImageQuant.Net.Codec
 
         public ReadOnlySpan<byte> GetScanLine(int rowIndex)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             var rowLen = (Width * data.BitsPerPixel) + 1;
             var startIndex = rowLen * rowIndex + 1;
             var scanLine = new ReadOnlySpan<byte>(bytes, startIndex, Width * data.BitsPerPixel);
@@ -57,6 +67,14 @@ namespace LibImageQuant.Net.Codec
                 var r = line[(column * 3) + 0];
                 return new Color(255, r, g, b);
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+            ArrayPool<byte>.Shared.Return(bytes);
         }
     }
 
@@ -325,13 +343,18 @@ namespace LibImageQuant.Net.Codec
                 using var buffer = new ChunkedStream();
                 var pngData = ReadPngData(ref reader, buffer, out var paletteRgb, out var paletteAlpha);
 
-                var bytes = new byte[pngData.BufferSize];
+                // Rented, not `new`-allocated: decoded images can be several megabytes, and
+                // this is exactly the kind of large, short-lived-or-reused buffer ArrayPool
+                // exists for. The caller owns the returned DecodedPng and must Dispose it
+                // (or use a `using`) to actually return the buffer to the pool.
+                var bytes = ArrayPool<byte>.Shared.Rent(pngData.BufferSize);
+                var bufferSpan = bytes.AsSpan(0, pngData.BufferSize);
 
                 using var inflater = new ZLibStream(buffer, CompressionMode.Decompress, false);
 
-                var bytesRead = ReadToEnd(inflater, bytes);
+                var bytesRead = ReadToEnd(inflater, bufferSpan);
 
-                Debug.Assert(bytesRead == bytes.Length);
+                Debug.Assert(bytesRead == bufferSpan.Length);
 
                 ApplyPngFilters(in pngData, bytes);
 

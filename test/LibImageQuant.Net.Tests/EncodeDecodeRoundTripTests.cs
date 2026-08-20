@@ -34,12 +34,12 @@ namespace LibImageQuant.Net.Tests
         public void EncodedPng_DecodesBackToExactlyTheQuantizedPixels(string fileName, int maxColors)
         {
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), fileName));
-            var dec = Decoder.ReadPng(bytes);
+            using var dec = Decoder.ReadPng(bytes);
             using var quantizer = new Quantizer { DitheringLevel = 0f, MaxColors = maxColors };
             using var result = quantizer.Quantize(GetProvider(dec), dec.Width, dec.Height);
 
             var encoded = new Coder(dec.Width, dec.Height).CreateBytes(result);
-            var redecoded = Decoder.ReadPng(encoded);
+            using var redecoded = Decoder.ReadPng(encoded);
 
             Assert.Equal(ColorType.PLTE, redecoded.ColorType);
             Assert.Equal(dec.Width, redecoded.Width);

@@ -36,7 +36,7 @@ namespace LibImageQuant.Net.Tests
             var png = PngTestHelpers.BuildMinimalPng(width: 2, height: 1, ColorType.RGB,
                 Concat(new[] { filterType }, filtered));
 
-            var dec = Decoder.ReadPng(png);
+            using var dec = Decoder.ReadPng(png);
 
             Assert.Equal(new Color(255, Pixel0[0], Pixel0[1], Pixel0[2]), dec.GetPixel(0, 0));
             Assert.Equal(new Color(255, Pixel1[0], Pixel1[1], Pixel1[2]), dec.GetPixel(0, 1));
@@ -63,7 +63,7 @@ namespace LibImageQuant.Net.Tests
                 Concat(new[] { filterType }, row1Filtered));
             var png = PngTestHelpers.BuildMinimalPng(width: 2, height: 2, ColorType.RGB, scanlines);
 
-            var dec = Decoder.ReadPng(png);
+            using var dec = Decoder.ReadPng(png);
 
             Assert.Equal(new Color(255, Pixel0[0], Pixel0[1], Pixel0[2]), dec.GetPixel(0, 0));
             Assert.Equal(new Color(255, Pixel1[0], Pixel1[1], Pixel1[2]), dec.GetPixel(0, 1));
