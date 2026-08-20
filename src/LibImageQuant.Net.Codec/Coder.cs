@@ -35,7 +35,7 @@ namespace LibImageQuant.Net.Codec
             deflater.Flush();
         }
 
-        public byte[] CreateBytes(in QuantizationResult result)
+        public byte[] CreateBytes(QuantizationResult result)
         {
             var backingArr = ArrayPool<byte>.Shared.Rent(result.ImageData.Length);
             try
