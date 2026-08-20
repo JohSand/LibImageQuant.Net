@@ -55,5 +55,14 @@
 			<Link>libzopflibridge.so</Link>
 			<CopyToOutputDirectory Condition="'$(IsLinux)'=='true'">Always</CopyToOutputDirectory>
 		</None>
+
+		<!-- This package bundles zopfli's compiled binaries above; Apache-2.0 section 4(a)
+		     requires redistributing a copy of its license alongside them. -->
+		<None Include="$(MSBuildThisFileDirectory)/../../native/zopfli/COPYING"
+			  Condition="Exists('$(MSBuildThisFileDirectory)/../../native/zopfli/COPYING')">
+			<Pack>true</Pack>
+			<PackagePath>licenses/zopfli/</PackagePath>
+			<Visible>false</Visible>
+		</None>
 	</ItemGroup>
 </Project>
