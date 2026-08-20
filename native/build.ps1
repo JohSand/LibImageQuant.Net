@@ -57,6 +57,10 @@ cd build-zopfli
 # two arguments at the decimal point ("-DX=3" and ".5"), which cmake then rejects/misreads.
 cmake -A x64 "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE ..
 cmake --build . --config Release
-Copy-Item -Force -Path "Release\zopfli.dll" -Destination $OutDir
+# libzopfli is defined inside zopfli/CMakeLists.txt, reached via our add_subdirectory(zopfli) -
+# the Visual Studio generator nests each subdirectory's own targets under a matching build-tree
+# folder, so its output lands at zopfli\Release\zopfli.dll, not flat under Release\ like
+# zopflibridge (defined directly in our own top-level native/CMakeLists.txt).
+Copy-Item -Force -Path "zopfli\Release\zopfli.dll" -Destination $OutDir
 Copy-Item -Force -Path "Release\zopflibridge.dll" -Destination $OutDir
 cd ..
