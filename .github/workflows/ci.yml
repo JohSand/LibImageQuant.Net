@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build native library (linux-x64)
+        if: runner.os == 'Linux'
+        run: bash native/build.sh
+
+      - name: Build native library (win-x64)
+        if: runner.os == 'Windows'
+        run: pwsh native/build.ps1
+
+      - name: dotnet build
+        run: dotnet build LibImageQuant.Net.sln
+
+      - name: dotnet test
+        run: dotnet test LibImageQuant.Net.sln
