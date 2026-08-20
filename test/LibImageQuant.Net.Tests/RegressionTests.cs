@@ -29,7 +29,7 @@ namespace LibImageQuant.Net.Tests
             var rawScanline = new byte[] { 3, 10, 20, 30, 45, 50, 55 };
             var png = PngTestHelpers.BuildMinimalPng(width: 2, height: 1, ColorType.RGB, rawScanline);
 
-            var dec = Decoder.ReadPng(png);
+            using var dec = Decoder.ReadPng(png);
 
             Assert.Equal(new Color(255, 10, 20, 30), dec.GetPixel(0, 0));
             Assert.Equal(new Color(255, 50, 60, 70), dec.GetPixel(0, 1));
@@ -43,7 +43,7 @@ namespace LibImageQuant.Net.Tests
             // returned - so output always carried a 256-color palette (padded with
             // whatever was left in unused native memory) regardless of MaxColors.
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "panda.png"));
-            var dec = Decoder.ReadPng(bytes);
+            using var dec = Decoder.ReadPng(bytes);
             using var quantizer = new Quantizer { MaxColors = 4, DitheringLevel = 0f };
             using var result = quantizer.Quantize(GetProvider(dec), dec.Width, dec.Height);
 
@@ -84,7 +84,7 @@ namespace LibImageQuant.Net.Tests
             // would fail again if it regressed to throwing the ArgumentOutOfRangeException
             // subclass instead.
             var bytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "panda.png"));
-            var dec = Decoder.ReadPng(bytes);
+            using var dec = Decoder.ReadPng(bytes);
 
             Assert.Throws<ArgumentException>(() => { dec.GetPixel(dec.Height, 0); });
             Assert.Throws<ArgumentException>(() => { dec.GetPixel(0, dec.Width); });

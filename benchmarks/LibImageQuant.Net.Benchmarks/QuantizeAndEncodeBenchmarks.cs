@@ -26,6 +26,9 @@ namespace LibImageQuant.Net.Benchmarks
             _provider = GetProvider(_frau);
         }
 
+        [GlobalCleanup]
+        public void Cleanup() => _frau.Dispose();
+
         private static IProvideImages GetProvider(DecodedPng dec) => dec.ColorType switch
         {
             ColorType.RGBA => new ManagedProvider<ARGBFiller>(dec),

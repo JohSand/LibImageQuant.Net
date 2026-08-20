@@ -24,13 +24,30 @@ namespace LibImageQuant.Net.Benchmarks
             _frau = File.ReadAllBytes("frau-mode-vintage-illustration-1622417428ANN.png");
         }
 
+        // Disposes within the benchmark rather than returning DecodedPng directly, so each
+        // iteration actually returns its pooled buffer to ArrayPool for the next iteration to
+        // reuse - representative of real decode-then-dispose usage, and what makes the pooled
+        // buffer's allocation reduction visible in MemoryDiagnoser at all (returning the
+        // undisposed object would just rent a fresh array every time, same as before pooling).
         [Benchmark]
-        public DecodedPng Decode_Panda_200x150_RGBA() => Decoder.ReadPng(_panda);
+        public int Decode_Panda_200x150_RGBA()
+        {
+            using var dec = Decoder.ReadPng(_panda);
+            return dec.Width;
+        }
 
         [Benchmark]
-        public DecodedPng Decode_Image06_800x500_RGB() => Decoder.ReadPng(_image06);
+        public int Decode_Image06_800x500_RGB()
+        {
+            using var dec = Decoder.ReadPng(_image06);
+            return dec.Width;
+        }
 
         [Benchmark]
-        public DecodedPng Decode_Frau_1920x1920_RGBA() => Decoder.ReadPng(_frau);
+        public int Decode_Frau_1920x1920_RGBA()
+        {
+            using var dec = Decoder.ReadPng(_frau);
+            return dec.Width;
+        }
     }
 }
