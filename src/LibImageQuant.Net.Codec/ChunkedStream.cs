@@ -49,7 +49,7 @@ namespace LibImageQuant.Net.Codec
                 {
                     slice.Span[..buffer.Length].CopyTo(buffer);
                     _chunkIndex += buffer.Length;
-                    return buffer.Length;
+                    return acc + buffer.Length;
                 }
                 else
                 {
