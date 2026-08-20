@@ -18,17 +18,22 @@ $Rid = "win-x64"
 $OutDir = Join-Path $PSScriptRoot "runtimes\$Rid\native"
 New-Item -Force -Path $OutDir -ItemType Directory | Out-Null
 
-#imagequant
+# imagequant
+#
+# libimagequant v4+ is a Rust crate; cargo-c (https://github.com/lu-zero/cargo-c) builds its
+# C-ABI-compatible shared library. Install it once with:
+#   cargo install cargo-c
 
-cd libimagequant
+$RustTarget = "x86_64-pc-windows-msvc"
 
-new-item -Force -Name build -ItemType directory
+cd libimagequant/imagequant-sys
 
-cd build
+cargo cbuild --release --target $RustTarget
 
-cmake -A x64 -DLIB_INSTALL_DIR=$pwd -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE ..
-cmake --build . --config Release
-Copy-Item -Force -Path "Release\imagequant.dll" -Destination $OutDir
+# cargo-c builds into ../target (the imagequant-sys/imagequant workspace root), matching
+# upstream's own Makefile convention (--target-dir=../target), not imagequant-sys/target.
+Copy-Item -Force -Path "../target/$RustTarget/release/imagequant.dll" -Destination $OutDir
+
 cd ../..
 
 

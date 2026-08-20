@@ -26,6 +26,21 @@ jobs:
         with:
           global-json-file: global.json
 
+      # libimagequant v4+ needs cargo-c (https://github.com/lu-zero/cargo-c) to build its
+      # C-ABI shared library. GitHub-hosted runners ship Rust/Cargo already; this just adds
+      # the prebuilt cargo-c binaries to it, rather than compiling cargo-c from source on
+      # every run.
+      - name: Install cargo-c (linux-x64)
+        if: runner.os == 'Linux'
+        run: curl -sL https://github.com/lu-zero/cargo-c/releases/download/v0.10.24/cargo-c-x86_64-unknown-linux-musl.tar.gz | tar xz -C ~/.cargo/bin
+
+      - name: Install cargo-c (win-x64)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/lu-zero/cargo-c/releases/download/v0.10.24/cargo-c-windows-msvc.zip" -OutFile cargo-c.zip
+          Expand-Archive -Path cargo-c.zip -DestinationPath "$env:USERPROFILE\.cargo\bin" -Force
+
       - name: Build native library (linux-x64)
         if: runner.os == 'Linux'
         run: bash native/build.sh
