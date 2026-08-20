@@ -4,12 +4,21 @@ using System.Runtime.InteropServices;
 
 namespace LibImageQuant.Net.Core
 {
-    public readonly struct QuantizationResult : IDisposable
+    /// <summary>
+    /// A class, not a struct: it owns a buffer rented from ArrayPool&lt;byte&gt;.Shared, and a
+    /// disposable value type is a well-known footgun - every copy of a struct is an independent
+    /// value that would still share (and could double-return, or read after another copy
+    /// returned) the same underlying array. Dispose it, or wrap it in a using, once you're done
+    /// reading from it.
+    /// </summary>
+    public sealed class QuantizationResult : IDisposable
     {
         private readonly byte[] _imageData;
         private readonly int _byteCount;
 
         private readonly Palette _palette;
+
+        private bool _disposed;
 
         public QuantizationResult(IntPtr quantizationResult, IntPtr unmanagedImage, int byteCount)
         {
@@ -42,12 +51,29 @@ namespace LibImageQuant.Net.Core
             _byteCount = byteCount;
         }
 
-        public ReadOnlySpan<byte> ImageData => new(_imageData, 0, _byteCount);
+        public ReadOnlySpan<byte> ImageData
+        {
+            get
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                return new ReadOnlySpan<byte>(_imageData, 0, _byteCount);
+            }
+        }
 
-        public ReadOnlySpan<Color> PaletteData => new(_palette.Entries, 0, _palette.Count);
+        public ReadOnlySpan<Color> PaletteData
+        {
+            get
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                return new ReadOnlySpan<Color>(_palette.Entries, 0, _palette.Count);
+            }
+        }
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+            _disposed = true;
             ArrayPool<byte>.Shared.Return(_imageData);
         }
     }
