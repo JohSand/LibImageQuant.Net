@@ -26,8 +26,16 @@ namespace Zopfli.Net
 
         public override void Flush()
         {
+            // Idempotent: nothing new has been written since the last flush (or since
+            // construction), so there's nothing to compress. Without this, calling Flush twice
+            // - including once explicitly and once automatically from Dispose - would compress
+            // and write the same buffered bytes a second time.
+            if (_position == 0)
+                return;
+
             _innerStream.Compress(new ReadOnlySpan<byte>(_buffer, 0, _position));
             _innerStream.Flush();
+            _position = 0;
         }
 
         // public override Task FlushAsync(CancellationToken cancellationToken) => _innerStream.FlushAsync(cancellationToken);
@@ -76,6 +84,13 @@ namespace Zopfli.Net
 
         protected override void Dispose(bool disposing)
         {
+            // Every BCL compression stream (DeflateStream, GZipStream, ZLibStream) flushes
+            // pending writes on Dispose; without this, `using (var zs = new ZopfliStream(s))
+            // { zs.Write(data); }` silently wrote nothing at all if the caller didn't also
+            // remember an explicit Flush() first.
+            if (disposing)
+                Flush();
+
             base.Dispose(disposing);
             if (!_leaveOpen)
                 _innerStream.Dispose();
